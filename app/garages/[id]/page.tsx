@@ -596,7 +596,7 @@ export default function GarageDetailsPage() {
   // Only current user's bookings
   const userBookings = garage.bookings?.filter(
     (b) =>
-      b.user._id === currentUser?._id &&
+      b.user._id === currentUser?.id &&
       b.status !== "cancelled"
   );
 
