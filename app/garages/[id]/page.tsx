@@ -18,6 +18,10 @@ import {
   FiClock,
   FiCheckCircle,
   FiAlertCircle,
+  FiPhone,
+  FiMail,
+  FiTool,
+  FiAward,
 } from "react-icons/fi";
 import {
   MapContainer,
@@ -27,7 +31,10 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { BookingService } from "@/lib/types/booking.types";
+import type {
+  BookingService,
+  Booking,
+} from "@/lib/types/booking.types";
 import { api } from "@/lib/api/api";
 
 // Custom hook to fetch services from garage bookings
@@ -48,7 +55,6 @@ function useServices(garageId: string | null) {
       setError(null);
 
       try {
-        // Fetch garage details which include bookings with services
         const response = await api.get<{
           success: boolean;
           garage: {
@@ -59,13 +65,11 @@ function useServices(garageId: string | null) {
         }>(`/garages/${garageId}`);
 
         if (response.success && response.garage) {
-          // Extract unique services from all bookings
           const allServices =
             response.garage.bookings?.flatMap(
               (booking) => booking.services || []
             ) || [];
 
-          // Remove duplicates based on service name and _id
           const uniqueServices = Array.from(
             new Map(
               allServices.map((service) => [
@@ -136,13 +140,17 @@ function BookingModal({
   // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setSelectedDate("");
-      setSelectedTime("");
-      setSelectedServices([]);
-      setNotes("");
-      setError("");
+      const timer = setTimeout(() => {
+        setSelectedDate("");
+        setSelectedTime("");
+        setSelectedServices([]);
+        setNotes("");
+        setError("");
+      }, 0);
+
+      return () => clearTimeout(timer);
     }
-  }, [isOpen]);
+  }, [isOpen]); // Only depend on isOpen
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -316,7 +324,8 @@ function BookingModal({
 
                   {servicesLoading ? (
                     <div className="text-center py-8">
-                      <p className="text-gray-500 animate-pulse">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
+                      <p className="text-gray-500">
                         Loading services...
                       </p>
                     </div>
@@ -385,9 +394,10 @@ function BookingModal({
                               <p className="font-medium text-gray-800">
                                 {service.name}
                               </p>
-                              <p className="text-sm text-gray-500">
+                              <p className="text-sm text-gray-500 flex items-center gap-1">
+                                <FiClock className="w-3 h-3" />
                                 {service.duration}{" "}
-                                minutes
+                                min
                               </p>
                             </div>
                           </div>
@@ -563,23 +573,27 @@ export default function GarageDetailsPage() {
   if (loading)
     return (
       <div className="flex justify-center items-center h-screen">
-        <p className="text-lg font-medium animate-pulse">
-          Loading garage details...
-        </p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-lg font-medium text-gray-600">
+            Loading garage details...
+          </p>
+        </div>
       </div>
     );
 
   if (error)
     return (
       <div className="flex flex-col justify-center items-center h-screen">
-        <p className="text-red-500 text-lg font-medium">
+        <FiAlertCircle className="w-12 h-12 text-red-500 mb-4" />
+        <p className="text-red-500 text-lg font-medium mb-4">
           {error}
         </p>
         <button
           onClick={refetch}
-          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg"
         >
-          Retry
+          Try Again
         </button>
       </div>
     );
@@ -593,12 +607,40 @@ export default function GarageDetailsPage() {
       </div>
     );
 
+  // Helper function to get user ID from booking (handles both string and object)
+  const getBookingUserId = (
+    booking: Booking
+  ): string | undefined => {
+    if (typeof booking.user === "string") {
+      return booking.user;
+    }
+    return booking.user?._id;
+  };
+
   // Only current user's bookings
   const userBookings = garage.bookings?.filter(
-    (b) =>
-      b.user._id === currentUser?.id &&
-      b.status !== "cancelled"
+    (booking) => {
+      const bookingUserId =
+        getBookingUserId(booking);
+      return (
+        bookingUserId === currentUser?.id &&
+        booking.status !== "cancelled"
+      );
+    }
   );
+
+  // Format date helper
+  const formatDate = (dateString: string) => {
+    return new Date(
+      dateString
+    ).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -615,9 +657,13 @@ export default function GarageDetailsPage() {
       {/* Back Button */}
       <button
         onClick={() => router.push("/garages")}
-        className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium mb-6 transition-colors"
+        className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium mb-6 transition-colors group"
       >
-        <FiArrowLeft size={20} /> Back to Garages
+        <FiArrowLeft
+          className="group-hover:-translate-x-1 transition-transform"
+          size={20}
+        />
+        Back to Garages
       </button>
 
       {/* Header */}
@@ -642,7 +688,7 @@ export default function GarageDetailsPage() {
 
           {garage.isVerified && (
             <span className="px-3 py-1 bg-gradient-to-r from-blue-200 to-blue-300 text-blue-800 font-semibold rounded-full text-sm flex items-center gap-1">
-              <FiCheckCircle /> Verified
+              <FiAward /> Verified
             </span>
           )}
 
@@ -675,7 +721,7 @@ export default function GarageDetailsPage() {
               >
                 <TileLayer
                   url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+                  attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
                 />
                 <Marker
                   position={[
@@ -685,10 +731,10 @@ export default function GarageDetailsPage() {
                       .coordinates[0],
                   ]}
                   icon={L.divIcon({
-                    html: `<div class="w-6 h-6 rounded-full bg-red-600 border-2 border-white shadow-lg animate-bounce"></div>`,
+                    html: `<div class="w-8 h-8 rounded-full bg-red-600 border-3 border-white shadow-lg animate-bounce"></div>`,
                     className: "",
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12],
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16],
                   })}
                 >
                   <Popup className="!p-4 !rounded-xl !shadow-lg">
@@ -797,17 +843,24 @@ export default function GarageDetailsPage() {
                     <FiUser className="w-5 h-5 text-green-500" />{" "}
                     Owner
                   </h2>
-                  <p className="text-gray-700 font-medium">
-                    Name: {garage.owner?.name}
-                  </p>
-                  <p className="text-gray-600">
-                    Email: {garage.owner?.email}
-                  </p>
-                  {garage.owner?.phone && (
-                    <p className="text-gray-600">
-                      Phone: {garage.owner.phone}
+                  <div className="space-y-2">
+                    <p className="text-gray-700">
+                      <span className="font-medium">
+                        Name:
+                      </span>{" "}
+                      {garage.owner?.name}
                     </p>
-                  )}
+                    <p className="text-gray-600 flex items-center gap-2">
+                      <FiMail className="w-4 h-4" />
+                      {garage.owner?.email}
+                    </p>
+                    {garage.owner?.phone && (
+                      <p className="text-gray-600 flex items-center gap-2">
+                        <FiPhone className="w-4 h-4" />
+                        {garage.owner.phone}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -816,6 +869,7 @@ export default function GarageDetailsPage() {
               <div className="space-y-4">
                 {!currentUser ? (
                   <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 text-center">
+                    <FiUser className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                     <p className="text-gray-500 mb-3">
                       Please login to see your
                       bookings.
@@ -837,6 +891,7 @@ export default function GarageDetailsPage() {
                 ) : !userBookings ||
                   userBookings.length === 0 ? (
                   <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 text-center">
+                    <FiCalendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                     <p className="text-gray-500 mb-3">
                       You have no bookings at this
                       garage.
@@ -858,7 +913,7 @@ export default function GarageDetailsPage() {
                   userBookings.map((booking) => (
                     <div
                       key={booking._id}
-                      className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100"
+                      className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow"
                     >
                       <div className="flex justify-between items-center mb-3">
                         <div>
@@ -869,9 +924,9 @@ export default function GarageDetailsPage() {
                             )}
                           </p>
                           <p className="text-sm text-gray-500">
-                            {new Date(
+                            {formatDate(
                               booking.appointmentDate
-                            ).toLocaleString()}
+                            )}
                           </p>
                         </div>
                         <span
@@ -893,18 +948,18 @@ export default function GarageDetailsPage() {
                       </div>
 
                       {/* Services */}
-                      <div className="space-y-1 mb-3 text-gray-700">
+                      <div className="space-y-1 mb-3">
                         {booking.services?.map(
                           (service, index) => (
                             <div
                               key={index}
-                              className="flex justify-between"
+                              className="flex justify-between text-sm"
                             >
-                              <span>
+                              <span className="text-gray-600">
                                 {service.name}
                               </span>
-                              <span className="font-medium">
-                                {service.price}{" "}
+                              <span className="font-medium text-gray-800">
+                                {service.price.toLocaleString()}{" "}
                                 ETB
                               </span>
                             </div>
@@ -912,13 +967,14 @@ export default function GarageDetailsPage() {
                         )}
                       </div>
 
-                      <div className="font-semibold text-purple-600 mb-3">
+                      <div className="font-bold text-lg text-purple-600 mb-3 border-t pt-2">
                         Total:{" "}
-                        {booking.totalPrice} ETB
+                        {booking.totalPrice.toLocaleString()}{" "}
+                        ETB
                       </div>
 
                       {booking.notes && (
-                        <div className="text-sm text-gray-600 mb-3 bg-gray-50 p-2 rounded-lg">
+                        <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
                           <span className="font-medium">
                             Notes:
                           </span>{" "}
@@ -936,7 +992,8 @@ export default function GarageDetailsPage() {
                 {!garage.reviews ||
                 garage.reviews.length === 0 ? (
                   <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 text-center">
-                    <p className="text-gray-500 text-sm">
+                    <FiStar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-500">
                       No reviews yet.
                     </p>
                   </div>
@@ -946,11 +1003,23 @@ export default function GarageDetailsPage() {
                       key={review._id}
                       className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100"
                     >
-                      <div className="flex justify-between items-center mb-2 text-sm font-medium text-indigo-600">
-                        <span>
-                          ⭐ {review.rating}
-                        </span>
-                        <span className="text-gray-400 text-xs">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map(
+                            (_, i) => (
+                              <FiStar
+                                key={i}
+                                className={`w-4 h-4 ${
+                                  i <
+                                  review.rating
+                                    ? "text-yellow-400 fill-current"
+                                    : "text-gray-300"
+                                }`}
+                              />
+                            )
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-400">
                           {new Date(
                             review.createdAt
                           ).toLocaleDateString()}
@@ -960,7 +1029,7 @@ export default function GarageDetailsPage() {
                         {review.comment}
                       </p>
                       {review.user && (
-                        <p className="text-gray-500 text-xs">
+                        <p className="text-gray-500 text-sm">
                           — {review.user.name}
                         </p>
                       )}
