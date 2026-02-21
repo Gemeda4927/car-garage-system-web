@@ -1,186 +1,131 @@
 "use client";
 
-import Image from "next/image";
+import { useGarages } from "@/lib/hooks/useGarage";
+import Link from "next/link";
 import {
-  Star,
-  MapPin,
-  Wrench,
-  Clock,
-} from "lucide-react";
+  FaMapMarkerAlt,
+  FaStar,
+  FaCalendarAlt,
+  FaCheckCircle,
+} from "react-icons/fa";
 
-const garages = [
-  {
-    id: 1,
-    name: "Premium Auto Garage",
-    location: "Addis Ababa, Bole",
-    rating: 4.9,
-    status: "Open",
-    services: [
-      "Engine Repair",
-      "Diagnostics",
-      "Full Service",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1625047509248-ec889cbff17f?q=80&w=1200",
-  },
-  {
-    id: 2,
-    name: "QuickFix Garage",
-    location: "Addis Ababa, Mexico",
-    rating: 4.6,
-    status: "Open",
-    services: [
-      "Oil Change",
-      "Tire Service",
-      "Battery",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1607860108855-64acf2078ed9?q=80&w=1200",
-  },
-  {
-    id: 3,
-    name: "Smart Auto Care",
-    location: "Adama",
-    rating: 4.8,
-    status: "Closed",
-    services: [
-      "Electrical",
-      "AC Repair",
-      "Inspection",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1581091012184-5c1f8b3e6a0d?q=80&w=1200",
-  },
-  {
-    id: 4,
-    name: "Elite Motors Garage",
-    location: "Hawassa",
-    rating: 4.7,
-    status: "Open",
-    services: [
-      "Transmission",
-      "Detailing",
-      "Car Wash",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1597002974111-9c5f8b19c7f3?q=80&w=1200",
-  },
-  {
-    id: 5,
-    name: "Urban Auto Hub",
-    location: "Bahir Dar",
-    rating: 4.5,
-    status: "Open",
-    services: [
-      "Brake Service",
-      "Suspension",
-      "Alignment",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?q=80&w=1200",
-  },
-];
+export default function GaragesPage() {
+  const { garages, loading, error, refetch } =
+    useGarages();
 
-export default function GaragePage() {
+  if (loading)
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <p className="text-lg font-medium animate-pulse">
+          Loading garages...
+        </p>
+      </div>
+    );
+
+  if (error)
+    return (
+      <div className="flex flex-col justify-center items-center h-screen">
+        <p className="text-red-500 text-lg font-medium">
+          {error}
+        </p>
+        <button
+          onClick={refetch}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100">
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        {/* Header */}
-        <div className="text-center mb-14">
-          <h1 className="text-4xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Discover Trusted Garages 🚗
-          </h1>
-          <p className="text-gray-600 mt-4 text-lg">
-            Book reliable automotive services near
-            you with confidence.
-          </p>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-4xl font-bold mb-10 text-center text-gray-800">
+        Garages Near You
+      </h1>
 
-        {/* Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+      {garages.length === 0 ? (
+        <p className="text-center text-gray-500">
+          No garages found.
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {garages.map((garage) => (
             <div
-              key={garage.id}
-              className="relative bg-white/70 backdrop-blur-xl rounded-3xl shadow-xl overflow-hidden border border-white/40 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500"
+              key={garage._id}
+              className="bg-white rounded-3xl shadow-lg hover:shadow-2xl hover:scale-105 transition-transform duration-300 border border-gray-200 flex flex-col overflow-hidden"
             >
-              {/* Image */}
-              <div className="relative h-56 w-full">
-                <Image
-                  src={garage.image}
+              {/* Placeholder Image */}
+              <div className="h-48 w-full bg-gray-200 overflow-hidden">
+                <img
+                  src={`https://source.unsplash.com/400x200/?garage,car&sig=${garage._id}`}
                   alt={garage.name}
-                  fill
-                  className="object-cover"
+                  className="object-cover w-full h-full"
                 />
-
-                {/* Status Badge */}
-                <div
-                  className={`absolute top-4 right-4 px-3 py-1 text-xs font-semibold rounded-full ${
-                    garage.status === "Open"
-                      ? "bg-green-500 text-white"
-                      : "bg-red-500 text-white"
-                  }`}
-                >
-                  {garage.status}
-                </div>
               </div>
 
-              {/* Content */}
-              <div className="p-6">
-                <h2 className="text-xl font-bold text-gray-800">
+              <div className="p-6 flex flex-col flex-1">
+                {/* Header */}
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">
                   {garage.name}
                 </h2>
 
-                <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
-                  <MapPin
-                    size={16}
-                    className="text-indigo-500"
-                  />
-                  {garage.location}
-                </div>
-
-                {/* Rating */}
-                <div className="flex items-center gap-1 mt-3">
-                  <Star
-                    size={16}
-                    className="text-yellow-500 fill-yellow-500"
-                  />
-                  <span className="font-semibold text-gray-700">
-                    {garage.rating}
-                  </span>
-                  <span className="text-gray-500 text-sm">
-                    (120 reviews)
-                  </span>
-                </div>
-
-                {/* Services */}
-                <div className="flex flex-wrap gap-2 mt-4">
-                  {garage.services.map(
-                    (service, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 text-xs rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
-                      >
-                        {service}
-                      </span>
-                    )
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  {garage.isActive ? (
+                    <span className="px-3 py-1 bg-gradient-to-r from-green-200 to-green-300 text-green-800 font-semibold rounded-full text-sm flex items-center gap-1">
+                      <FaCheckCircle /> Open
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 bg-gradient-to-r from-red-200 to-red-300 text-red-800 font-semibold rounded-full text-sm flex items-center gap-1">
+                      Closed
+                    </span>
+                  )}
+                  {garage.isVerified && (
+                    <span className="px-2 py-1 bg-gradient-to-r from-blue-200 to-blue-300 text-blue-800 font-semibold rounded-full text-sm flex items-center gap-1">
+                      <FaCheckCircle /> Verified
+                    </span>
                   )}
                 </div>
 
-                {/* Buttons */}
-                <div className="flex gap-3 mt-6">
-                  <button className="flex-1 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:opacity-90 transition">
-                    Book Now
-                  </button>
+                {/* Description */}
+                <p className="text-gray-600 mb-4 line-clamp-2">
+                  {garage.description}
+                </p>
 
-                  <button className="flex-1 py-2 rounded-xl border border-indigo-500 text-indigo-600 font-semibold hover:bg-indigo-50 transition">
-                    View Details
-                  </button>
+                {/* Info Row */}
+                <div className="flex flex-col gap-2 mb-4 text-gray-700">
+                  <p className="flex items-center gap-2">
+                    <FaMapMarkerAlt className="text-blue-500" />{" "}
+                    {garage.formattedAddress}
+                  </p>
+                  <p className="flex items-center gap-1 text-yellow-500">
+                    <FaStar />{" "}
+                    {garage.averageRating} (
+                    {garage.totalReviews} reviews)
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <FaCalendarAlt className="text-purple-500" />{" "}
+                    {garage.bookings.length}{" "}
+                    Booking
+                    {garage.bookings.length !== 1
+                      ? "s"
+                      : ""}
+                  </p>
                 </div>
+
+                {/* Action Button */}
+                {garage.isActive && (
+                  <Link
+                    href={`/garages/${garage._id}`}
+                    className="mt-auto inline-block w-full text-center px-4 py-3 bg-gray-600 text-white font-semibold rounded-xl hover:bg-gray-700 transition"
+                  >
+                    View Details
+                  </Link>
+                )}
               </div>
             </div>
           ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }
