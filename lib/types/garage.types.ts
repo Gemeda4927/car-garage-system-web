@@ -1,3 +1,8 @@
+import {
+  Booking,
+  OwnerReference,
+} from "./booking.types";
+
 // Base types
 export interface Address {
   street: string;
@@ -12,39 +17,8 @@ export interface Location {
   coordinates: [number, number]; // [longitude, latitude]
 }
 
-export interface OwnerReference {
-  _id: string;
-  name: string;
-  email: string;
-  phone?: string;
-}
-
-// --------------------
-// Booking Types
-// --------------------
-
-export interface BookingService {
-  _id: string;
-  name: string;
-  price: number;
-  duration: number; // minutes
-}
-
-export type BookingStatus =
-  | "pending"
-  | "confirmed"
-  | "completed"
-  | "cancelled";
-
-export interface Booking {
-  _id: string;
-  user: OwnerReference;
-  garage: string;
-  services: BookingService[];
-  totalPrice: number;
-  appointmentDate: string;
-  status: BookingStatus;
-}
+// Re-export OwnerReference from booking.types for consistency
+export type { OwnerReference };
 
 // --------------------
 // Review Type
@@ -99,4 +73,10 @@ export interface GaragesListResponse {
   page: number;
   pages: number;
   garages: Garage[];
+}
+
+// Single garage response
+export interface GarageResponse {
+  success: boolean;
+  garage: Garage;
 }
