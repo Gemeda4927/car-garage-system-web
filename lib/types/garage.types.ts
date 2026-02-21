@@ -21,6 +21,19 @@ export interface Location {
 export type { OwnerReference };
 
 // --------------------
+// Service Type
+// --------------------
+
+export interface Service {
+  _id: string;
+  name: string;
+  description?: string;
+  price: number;
+  duration: number; // in minutes
+  isActive: boolean;
+}
+
+// --------------------
 // Review Type
 // --------------------
 
@@ -49,6 +62,10 @@ export interface Garage {
   location: Location;
   googlePlaceId?: string;
   formattedAddress: string;
+
+  // ✅ Add this line - Services array
+  services: Service[];
+
   averageRating: number;
   totalReviews: number;
   isActive: boolean;
@@ -63,7 +80,7 @@ export interface Garage {
 }
 
 // --------------------
-// API Response
+// API Response Types
 // --------------------
 
 export interface GaragesListResponse {
@@ -79,4 +96,32 @@ export interface GaragesListResponse {
 export interface GarageResponse {
   success: boolean;
   garage: Garage;
+}
+
+// --------------------
+// Filter and Query Types
+// --------------------
+
+export interface GarageFilters {
+  city?: string;
+  isVerified?: boolean;
+  minRating?: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface GarageQueryParams extends GarageFilters {
+  lat?: string | number;
+  lng?: string | number;
+  radius?: number;
+}
+
+// --------------------
+// Location Search Types
+// --------------------
+
+export interface LocationSearchParams {
+  lat: string | number;
+  lng: string | number;
+  radius?: number; // in km
 }
