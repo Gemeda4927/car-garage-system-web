@@ -1,198 +1,183 @@
 import axios, {
-  AxiosInstance,
   AxiosRequestConfig,
   AxiosResponse,
   InternalAxiosRequestConfig,
-  AxiosError,
+  AxiosHeaders,
 } from "axios";
+import type { RequestConfig } from "../types/apiClient.types";
 
-// Custom error class for API errors
-export class ApiError extends Error {
-  public status?: number;
-  public data?: unknown;
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL;
 
-  constructor(
-    message: string,
-    status?: number,
-    data?: unknown
-  ) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-    this.data = data;
-  }
-}
+if (!API_BASE_URL)
+  throw new Error(
+    "NEXT_PUBLIC_API_BASE_URL is not defined"
+  );
 
-export type RequestData =
-  | Record<string, unknown>
-  | FormData
-  | URLSearchParams
-  | null
-  | undefined;
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true,
+  headers: { "Content-Type": "application/json" },
+});
 
-class ApiClient {
-  private client: AxiosInstance;
+let accessToken: string | null = null;
 
-  constructor() {
-    this.client = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_URL,
-      timeout:
-        Number(
-          process.env.NEXT_PUBLIC_API_TIMEOUT
-        ) || 30000,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+export const setAccessToken = (token: string) =>
+  (accessToken = token);
+export const getAccessToken = (): string | null =>
+  accessToken;
+export const clearAccessToken = () =>
+  (accessToken = null);
 
-    // Request interceptor for auth tokens
-    this.client.interceptors.request.use(
-      (config: InternalAxiosRequestConfig) => {
-        // Add auth token if available
-        if (typeof window !== "undefined") {
-          const token =
-            localStorage.getItem("auth_token");
-          if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-          }
-        }
-        return config;
-      },
-      (error: AxiosError) =>
-        Promise.reject(this.handleError(error))
-    );
-
-    // Response interceptor for error handling
-    this.client.interceptors.response.use(
-      (response: AxiosResponse) => response,
-      (error: AxiosError) => {
-        // Handle common errors
-        if (error.response?.status === 401) {
-          // Clear token and redirect to login
-          if (typeof window !== "undefined") {
-            localStorage.removeItem("auth_token");
-            localStorage.removeItem("user");
-            window.location.href = "/login";
-          }
-        }
-        return Promise.reject(
-          this.handleError(error)
+apiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    if (accessToken) {
+      if (
+        !(config.headers instanceof AxiosHeaders)
+      ) {
+        config.headers = new AxiosHeaders(
+          config.headers
         );
       }
-    );
-  }
-
-  // Error handler
-  private handleError(
-    error: AxiosError
-  ): ApiError {
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      return new ApiError(
-        error.message,
-        error.response.status,
-        error.response.data
+      config.headers.set(
+        "Authorization",
+        `Bearer ${accessToken}`
       );
-    } else if (error.request) {
-      // The request was made but no response was received
-      return new ApiError(
-        "No response received from server"
-      );
-    } else {
-      // Something happened in setting up the request
-      return new ApiError(error.message);
     }
-  }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-  // Generic request method
-  async request<TResponse>(
-    config: AxiosRequestConfig
-  ): Promise<TResponse> {
-    try {
-      const response =
-        await this.client.request<TResponse>(
-          config
+apiClient.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  async (error) => {
+    const originalRequest =
+      error.config as AxiosRequestConfig & {
+        _retry?: boolean;
+      };
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry
+    ) {
+      originalRequest._retry = true;
+
+      try {
+        const res = await axios.post<{
+          token: string;
+        }>(
+          `${API_BASE_URL}/auth/refresh-token`,
+          {},
+          { withCredentials: true }
         );
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  }
 
-  // Method that returns the full Axios response
-  async requestWithFullResponse<TResponse>(
-    config: AxiosRequestConfig
-  ): Promise<AxiosResponse<TResponse>> {
-    try {
-      return await this.client.request<TResponse>(
-        config
-      );
-    } catch (error) {
-      throw error;
-    }
-  }
+        const newToken = res.data.token;
+        setAccessToken(newToken);
 
-  // HTTP method helpers with generic data type
-  async get<TResponse>(
+        if (originalRequest.headers) {
+          (
+            originalRequest.headers as Record<
+              string,
+              string
+            >
+          ).Authorization = `Bearer ${newToken}`;
+        }
+
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        clearAccessToken();
+        if (typeof window !== "undefined")
+          window.location.href = "/login";
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+const request = async <T = unknown, D = unknown>({
+  url,
+  data,
+  params,
+  headers,
+  method,
+}: RequestConfig<D> & {
+  method:
+    | "GET"
+    | "POST"
+    | "PUT"
+    | "PATCH"
+    | "DELETE";
+}): Promise<T> => {
+  const response: AxiosResponse<T> =
+    await apiClient({
+      url,
+      method,
+      data,
+      params,
+      headers,
+    });
+  return response.data;
+};
+
+export const api = {
+  get: <T = unknown>(
     url: string,
-    config?: AxiosRequestConfig
-  ): Promise<TResponse> {
-    return this.request<TResponse>({
-      ...config,
+    params?: Record<string, unknown>,
+    headers?: Record<string, string>
+  ) =>
+    request<T, undefined>({
+      url,
+      params,
+      headers,
       method: "GET",
-      url,
-    });
-  }
-
-  async post<TResponse, TData = unknown>(
+    }),
+  post: <T = unknown, D = unknown>(
     url: string,
-    data?: TData,
-    config?: AxiosRequestConfig
-  ): Promise<TResponse> {
-    return this.request<TResponse>({
-      ...config,
+    data?: D,
+    headers?: Record<string, string>
+  ) =>
+    request<T, D>({
+      url,
+      data,
+      headers,
       method: "POST",
-      url,
-      data: data as unknown,
-    });
-  }
-
-  async put<TResponse, TData = unknown>(
+    }),
+  put: <T = unknown, D = unknown>(
     url: string,
-    data?: TData,
-    config?: AxiosRequestConfig
-  ): Promise<TResponse> {
-    return this.request<TResponse>({
-      ...config,
+    data?: D,
+    headers?: Record<string, string>
+  ) =>
+    request<T, D>({
+      url,
+      data,
+      headers,
       method: "PUT",
-      url,
-      data: data as unknown,
-    });
-  }
-
-  async patch<TResponse, TData = unknown>(
+    }),
+  patch: <T = unknown, D = unknown>(
     url: string,
-    data?: TData,
-    config?: AxiosRequestConfig
-  ): Promise<TResponse> {
-    return this.request<TResponse>({
-      ...config,
+    data?: D,
+    headers?: Record<string, string>
+  ) =>
+    request<T, D>({
+      url,
+      data,
+      headers,
       method: "PATCH",
-      url,
-      data: data as unknown,
-    });
-  }
-
-  async delete<TResponse>(
+    }),
+  delete: <T = unknown, D = unknown>(
     url: string,
-    config?: AxiosRequestConfig
-  ): Promise<TResponse> {
-    return this.request<TResponse>({
-      ...config,
-      method: "DELETE",
+    data?: D,
+    headers?: Record<string, string>
+  ) =>
+    request<T, D>({
       url,
-    });
-  }
-}
+      data,
+      headers,
+      method: "DELETE",
+    }),
+};
 
-export const api = new ApiClient();
+export default apiClient;

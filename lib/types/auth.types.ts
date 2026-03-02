@@ -1,50 +1,35 @@
-
-export type UserRole =
-  | "user"
-  | "admin"
-  | "garage_owner";
-
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
-}
-
-export interface AuthData {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  token: string;
-}
-
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface RegisterData {
-  name: string;
-  email: string;
-  password: string;
+  role: "car_owner" | "garage_owner" | "admin";
   phone?: string;
-  role?: Exclude<UserRole, "admin">;
+  avatar?: string | null;
+  canCreateGarage: boolean;
 }
 
-export interface ForgotPasswordData {
+export interface LoginRequest {
   email: string;
-}
-
-export interface ResetPasswordData {
-  token: string;
   password: string;
-  confirmPassword: string;
 }
 
-// Generic response type
-export interface ApiResponse<T = null> {
+export interface LoginResponse {
+  user: User;
+  token: string;
+}
+
+export interface LoginApiResponse {
   success: boolean;
   message: string;
-  data?: T;
+  data: LoginResponse;
+}
+
+export interface UseAuthReturn {
+  login: (data: LoginRequest) => Promise<void>;
+  logout: () => void;
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  loading: boolean;
+  error: string | null;
 }

@@ -1,12 +1,19 @@
-import { create } from "zustand/react";
-import { defaultGarageRegistration, FileUploadState, GarageRegistrationRequest, GarageRegistrationResponse, GarageRegistrationState, UserRole } from "../types/register.type";
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import {
+  defaultVehicleOwner,
+  defaultGarageOwner,
+  FileUploadState,
+  GarageRegistrationRequest,
+  GarageRegistrationResponse,
+  GarageRegistrationState,
+  UserRole,
+} from "../types/register.type";
 import { registerApi } from "../api/register.api";
 
-
-// Initial empty state using default values
-const initialFormData: GarageRegistrationRequest = defaultGarageRegistration;
-
+// ===============================
+// Initial States
+// ===============================
 const initialFileState: FileUploadState = {
   profileImage: null,
   certificateOfIncorporation: null,
@@ -15,10 +22,13 @@ const initialFileState: FileUploadState = {
   businessLicense: null,
 };
 
+// ===============================
+// Store Interface
+// ===============================
 interface RegisterStore extends GarageRegistrationState {
   formData: GarageRegistrationRequest;
   files: FileUploadState;
-  
+
   // Actions
   setFormData: (data: Partial<GarageRegistrationRequest>) => void;
   setFile: (key: keyof FileUploadState, file: File | null) => void;
@@ -28,6 +38,9 @@ interface RegisterStore extends GarageRegistrationState {
   clearError: () => void;
 }
 
+// ===============================
+// Zustand Store
+// ===============================
 export const useRegisterStore = create<RegisterStore>()(
   persist(
     (set, get) => ({
@@ -38,10 +51,12 @@ export const useRegisterStore = create<RegisterStore>()(
       error: null,
       data: null,
       validationErrors: null,
-      formData: initialFormData,
+      formData: defaultVehicleOwner, // Start with vehicle owner by default
       files: initialFileState,
 
+      // ===============================
       // Actions
+      // ===============================
       setFormData: (data) => {
         set((state) => ({
           formData: { ...state.formData, ...data },
@@ -55,64 +70,82 @@ export const useRegisterStore = create<RegisterStore>()(
       },
 
       setRole: (role) => {
-        set((state) => ({
-          formData: { ...state.formData, role },
-        }));
+        set((state) => {
+          // Set the appropriate default based on role
+          const defaultData = role === "user" ? defaultVehicleOwner : defaultGarageOwner;
+          
+          // Preserve basic user info when switching roles
+          const newFormData = {
+            ...defaultData,
+            name: state.formData.name,
+            email: state.formData.email,
+            password: state.formData.password,
+            phone: state.formData.phone,
+            role: role,
+          };
+
+          return {
+            formData: newFormData,
+            files: initialFileState, // Clear files when switching roles
+          };
+        });
       },
 
       register: async () => {
-        set({ isLoading: true, isError: false, error: null, validationErrors: null });
-        
+        set({
+          isLoading: true,
+          isError: false,
+          error: null,
+          validationErrors: null,
+        });
+
         try {
           const { formData, files } = get();
-          
-          // Create a new FileUploadState object with only non-null files
-          const apiFiles: FileUploadState = {
-            profileImage: files.profileImage instanceof File ? files.profileImage : undefined,
-            certificateOfIncorporation: files.certificateOfIncorporation instanceof File ? files.certificateOfIncorporation : undefined,
-            insuranceCertificate: files.insuranceCertificate instanceof File ? files.insuranceCertificate : undefined,
-            garageAgreement: files.garageAgreement instanceof File ? files.garageAgreement : undefined,
-            businessLicense: files.businessLicense instanceof File ? files.businessLicense : undefined,
-          };
-          
-          const response = await registerApi.registerGarage(formData, apiFiles);
-          
+          const response = await registerApi.register(formData, files);
+
           if (response.success) {
-            set({ 
-              isLoading: false, 
-              isSuccess: true, 
+            set({
+              isLoading: false,
+              isSuccess: true,
               data: response.data,
-              validationErrors: null 
+              validationErrors: null,
             });
-            
+
             if (response.data?.token) {
-              localStorage.setItem('auth_token', response.data.token);
-              // Store user role
-              localStorage.setItem('user_role', response.data.role);
+              localStorage.setItem("auth_token", response.data.token);
+              localStorage.setItem("user_role", response.data.role);
             }
+
+            return response;
           } else {
-            const errors = response.errors?.reduce((acc, err) => ({
-              ...acc,
-              [err.field]: err.message
-            }), {}) || null;
-            
-            set({ 
-              isLoading: false, 
-              isError: true, 
+            // Handle validation errors from response
+            const errors = response.errors?.reduce(
+              (acc, err) => ({ ...acc, [err.field]: err.message }),
+              {} as Record<string, string>
+            );
+
+            set({
+              isLoading: false,
+              isError: true,
               error: response.message,
-              validationErrors: errors
+              validationErrors: errors || null,
             });
+
+            throw new Error(response.message);
           }
+        } catch (error: unknown) {
+          console.error("Registration error:", error);
           
-          return response;
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Registration failed';
-          set({ 
-            isLoading: false, 
-            isError: true, 
-            error: errorMessage,
-            validationErrors: null
+          // Check if error has validation errors
+          const validationErrors = error.validationErrors || null;
+          
+          set({
+            isLoading: false,
+            isError: true,
+            error: error.message || "Registration failed",
+            validationErrors: validationErrors,
           });
+          
           throw error;
         }
       },
@@ -125,19 +158,23 @@ export const useRegisterStore = create<RegisterStore>()(
           error: null,
           data: null,
           validationErrors: null,
-          formData: initialFormData,
+          formData: defaultVehicleOwner,
           files: initialFileState,
         });
       },
 
       clearError: () => {
-        set({ error: null, isError: false, validationErrors: null });
+        set({
+          error: null,
+          isError: false,
+          validationErrors: null,
+        });
       },
     }),
     {
-      name: 'garage-registration-storage',
+      name: "garage-registration-storage",
       partialize: (state) => ({
-        formData: state.formData,
+        formData: state.formData, // Only persist formData
       }),
     }
   )
