@@ -1,127 +1,190 @@
-import {
-  Booking,
-  OwnerReference,
-} from "./booking.types";
+export interface Coordinates {
+  type: "Point";
+  coordinates: [number, number];
+}
 
-// Base types
 export interface Address {
   street: string;
   city: string;
   state: string;
   country: string;
-  postalCode?: string;
+  zipCode: string;
 }
 
-export interface Location {
-  type: "Point";
-  coordinates: [number, number]; // [longitude, latitude]
+export interface ContactInfo {
+  phone: string;
+  email: string;
+  website: string;
 }
 
-// Re-export OwnerReference from booking.types for consistency
-export type { OwnerReference };
+export interface BusinessDay {
+  open: string;
+  close: string;
+  closed: boolean;
+}
 
-// --------------------
-// Service Type
-// --------------------
+export interface BusinessHours {
+  monday: BusinessDay;
+  tuesday: BusinessDay;
+  wednesday: BusinessDay;
+  thursday: BusinessDay;
+  friday: BusinessDay;
+  saturday: BusinessDay;
+  sunday: BusinessDay;
+}
 
-export interface Service {
+export interface GarageStats {
+  totalBookings: number;
+  completedBookings: number;
+  averageRating: number;
+  totalReviews: number;
+}
+
+export interface UserSummary {
   _id: string;
   name: string;
-  description?: string;
-  price: number;
-  duration: number; // in minutes
-  isActive: boolean;
+  email: string;
+  avatar: string | null;
+  phone: string;
 }
 
-// --------------------
-// Review Type
-// --------------------
+// Booking Types
+export interface TimeSlot {
+  start: string;
+  end: string;
+}
 
-export interface Review {
+export interface BookingCarOwner {
   _id: string;
-  rating: number;
-  comment: string;
-  createdAt: string;
-  user?: {
-    _id: string;
-    name: string;
-  };
+  name: string;
+  phone: string;
 }
 
-// --------------------
-// Main Garage Interface
-// --------------------
+export interface ServiceBooking {
+  _id: string;
+  carOwner: BookingCarOwner;
+  service: string;
+  bookingDate: string;
+  timeSlot: TimeSlot;
+  status: "pending" | "approved" | "cancelled" | "completed" | "rejected";
+}
+
+export interface GarageService {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  duration: number;
+  category: string;
+  images: unknown[];
+  isAvailable: boolean;
+  bookings?: ServiceBooking[];
+}
 
 export interface Garage {
   _id: string;
-  id: string;
-  owner: OwnerReference;
   name: string;
   description: string;
+  coordinates: Coordinates;
   address: Address;
-  location: Location;
-  googlePlaceId?: string;
-  formattedAddress: string;
-
-  // ✅ Add this line - Services array
-  services: Service[];
-
-  averageRating: number;
-  totalReviews: number;
+  contactInfo: ContactInfo;
+  businessHours: BusinessHours;
+  owner: UserSummary;
+  creationPayment: string;
+  status: "pending" | "active" | "suspended" | "approved";
   isActive: boolean;
   isVerified: boolean;
   isDeleted: boolean;
+  paidAt: string;
   createdAt: string;
   updatedAt: string;
-
-  // Relations returned from backend
-  bookings: Booking[];
-  reviews: Review[];
+  stats: GarageStats;
+  services: GarageService[];
+  images: unknown[];
+  documents: unknown[];
+  verifiedAt?: string;
+  verifiedBy?: string;
+  reviews: unknown[];
+  __v: number;
 }
 
-// --------------------
-// API Response Types
-// --------------------
+export type PopulatedGarage = Garage
 
-export interface GaragesListResponse {
-  success: boolean;
-  count: number;
-  total: number;
+// Price Range Type
+export interface PriceRange {
+  _id: null;
+  minPrice: number;
+  maxPrice: number;
+  avgPrice: number;
+}
+
+// Pagination Type
+export interface Pagination {
   page: number;
+  limit: number;
+  total: number;
   pages: number;
-  garages: Garage[];
 }
 
-// Single garage response
-export interface GarageResponse {
+// Request Payloads
+export interface CreateGaragePayload {
+  name: string;
+  description: string;
+  coordinates: [number, number];
+  address: Address;
+  contactInfo: ContactInfo;
+  businessHours: BusinessHours;
+}
+
+export interface UpdateGaragePayload {
+  name?: string;
+  description?: string;
+  coordinates?: [number, number];
+  address?: Partial<Address>;
+  contactInfo?: Partial<ContactInfo>;
+  businessHours?: Partial<BusinessHours>;
+}
+
+// API Response Types
+export interface ApiResponse<T> {
   success: boolean;
-  garage: Garage;
+  data: T;
 }
 
-// --------------------
-// Filter and Query Types
-// --------------------
+export interface GaragesListData {
+  garages: PopulatedGarage[];
+  priceRange: PriceRange;
+  pagination: Pagination;
+}
 
-export interface GarageFilters {
-  city?: string;
-  isVerified?: boolean;
-  minRating?: number;
+export interface GarageSingleData {
+  garage: PopulatedGarage;
+}
+
+export type GaragesListResponse = ApiResponse<GaragesListData>;
+export type GarageSingleResponse = ApiResponse<GarageSingleData>;
+
+// Booking Filter Params
+export interface GarageBookingsParams {
+  serviceId?: string;
+  date?: string;
+  status?: string;
   page?: number;
   limit?: number;
 }
 
-export interface GarageQueryParams extends GarageFilters {
-  lat?: string | number;
-  lng?: string | number;
+// Nearby Garage Query
+export interface NearbyGaragesQuery {
+  lat: number;
+  lng: number;
   radius?: number;
+  limit?: number;
 }
 
-// --------------------
-// Location Search Types
-// --------------------
-
-export interface LocationSearchParams {
-  lat: string | number;
-  lng: string | number;
-  radius?: number; // in km
+export interface NearbyGarage extends PopulatedGarage {
+  distance?: {
+    value: number;
+    unit: string;
+  };
+  isOpenNow?: boolean;
 }
