@@ -1,42 +1,72 @@
-import { useEffect, useCallback } from "react";
-import { useBookingStore } from "../store/booking.store";
+import { useCallback } from "react";
+import {
+  BookingStatus,
+  UseBookingStatusProps,
+  UseBookingStatusReturn,
+} from "../types/booking.types";
+import { useBookingStatusStore } from "../store/booking.store";
 
-interface BookingFilter {
-  userId?: string;
-  garageId?: string;
-}
+/**
+ * Custom hook for updating booking status
+ * Only handles the status update endpoint
+ */
+export const useBookingStatus = ({
+  bookingId,
+  onSuccess,
+  onError,
+}: UseBookingStatusProps): UseBookingStatusReturn => {
+  const {
+    updateBookingStatus,
+    isLoading,
+    error,
+    clearError,
+  } = useBookingStatusStore();
 
-export const useBookings = (
-  params?: BookingFilter
-) => {
-  const bookings = useBookingStore(
-    (s) => s.bookings
+  const updateStatus = useCallback(
+    async (
+      status: BookingStatus,
+      reason?: string
+    ) => {
+      try {
+        const updatedBooking =
+          await updateBookingStatus(
+            bookingId,
+            status,
+            reason
+          );
+
+        if (updatedBooking) {
+          onSuccess?.(updatedBooking);
+        } else {
+          onError?.(
+            error ||
+              "Failed to update booking status"
+          );
+        }
+      } catch (err: any) {
+        onError?.(
+          err.message ||
+            "Failed to update booking status"
+        );
+      }
+    },
+    [
+      bookingId,
+      updateBookingStatus,
+      onSuccess,
+      onError,
+      error,
+    ]
   );
-  const loading = useBookingStore(
-    (s) => s.loading
-  );
-  const error = useBookingStore((s) => s.error);
-  const fetchBookings = useBookingStore(
-    (s) => s.fetchBookings
-  );
 
-  const stableParams = JSON.stringify(
-    params ?? {}
-  );
-
-  useEffect(() => {
-    fetchBookings(params);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stableParams]);
-
-  const refetch = useCallback(() => {
-    fetchBookings(params);
-  }, [fetchBookings, params]);
+  const reset = useCallback(() => {
+    clearError();
+  }, [clearError]);
 
   return {
-    bookings,
-    loading,
+    updateStatus,
+    isLoading,
     error,
-    refetch,
+    reset,
   };
 };

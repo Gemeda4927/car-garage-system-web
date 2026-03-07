@@ -1,115 +1,61 @@
-import { api } from "./api";
 import {
-  Booking,
-  CreateBookingRequest,
-  UpdateBookingRequest,
-  MyBookingsResponse,
-  DeleteBookingResponse,
+  ApiResponse,
+  BookingStatusResponse,
+  UpdateBookingStatusRequest,
 } from "../types/booking.types";
+import api from "./api";
 
-export const bookingApi = {
-  // Create a new booking
-  createBooking: async (
-    data: CreateBookingRequest
-  ): Promise<{
-    success: boolean;
-    booking: Booking;
-  }> => {
-    return api.post<{
-      success: boolean;
-      booking: Booking;
-    }>("/bookings/bookings", data);
-  },
+class BookingStatusService {
+  private readonly basePath = "bookings";
 
-  // Get user's own bookings (my-bookings)
-  getMyBookings: async (): Promise<MyBookingsResponse> => {
-    return api.get<MyBookingsResponse>("/bookings/bookings/my-bookings");
-  },
+  /**
+   * Update booking status
+   * PUT /api/bookings/{bookingId}/status
+   */
+  async updateStatus(
+    bookingId: string,
+    data: UpdateBookingStatusRequest
+  ): Promise<ApiResponse<BookingStatusResponse>> {
+    try {
+      console.log(
+        `📍 Updating booking ${bookingId} status to:`,
+        data.status
+      );
 
-  // Get a single booking by ID
-  getBookingById: async (
-    id: string
-  ): Promise<{
-    success: boolean;
-    booking: Booking;
-  }> => {
-    return api.get<{
-      success: boolean;
-      booking: Booking;
-    }>(`/bookings/bookings/${id}`);
-  },
+      const response = await api.put<
+        ApiResponse<BookingStatusResponse>,
+        UpdateBookingStatusRequest
+      >(
+        `${this.basePath}/${bookingId}/status`,
+        data
+      );
 
-  // Update booking
-  updateBooking: async (
-    id: string,
-    data: UpdateBookingRequest
-  ): Promise<{
-    success: boolean;
-    booking: Booking;
-  }> => {
-    return api.put<{
-      success: boolean;
-      booking: Booking;
-    }>(`/bookings/bookings/${id}`, data);
-  },
+      console.log(
+        "✅ Booking status updated successfully"
+      );
+      return response;
+    } catch (error: unknown) {
+      console.error(
+        `❌ Failed to update booking ${bookingId} status:`,
+        error
+      );
 
-  // Cancel booking (soft delete)
- 
-cancelBooking: async (
-  id: string
-): Promise<{ success: boolean; message: string }> => {
-  try {
-    // Make the DELETE request
-    const response = await api.delete<{ message: string }>(
-      `/bookings/bookings/soft/${id}`
-    );
-    
-    // Since we got a response without throwing an error, it was successful
-    // Return in the format your store expects
-    return {
-      success: true,
-      message: response.message || "Booking cancelled successfully"
-    };
-  } catch (error: unknown) {
-    // Handle any errors (like 403, 404, 500)
-    console.error("Cancel booking API error:", error);
-    
-    // Return failure with error message
-    return {
-      success: false,
-      message: error.message || "Failed to cancel booking"
-    };
+      // Enhance error with more context
+      const enhancedError = new Error(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to update booking status"
+      );
+      (enhancedError as any).statusCode =
+        error.response?.status;
+      (enhancedError as any).originalError =
+        error;
+
+      throw enhancedError;
+    }
   }
-},
-  // Get all bookings (admin only)
-  getAllBookings: async (): Promise<{
-    success: boolean;
-    count: number;
-    bookings: Booking[];
-  }> => {
-    return api.get<{
-      success: boolean;
-      count: number;
-      bookings: Booking[];
-    }>("/bookings/bookings");
-  },
+}
 
-  // Restore booking (admin only)
-  restoreBooking: async (
-    id: string
-  ): Promise<DeleteBookingResponse> => {
-    return api.put<DeleteBookingResponse>(
-      `/bookings/bookings/restore/${id}`,
-      {}
-    );
-  },
-
-  // Hard delete booking (admin only)
-  hardDeleteBooking: async (
-    id: string
-  ): Promise<DeleteBookingResponse> => {
-    return api.delete<DeleteBookingResponse>(
-      `/bookings/bookings/hard/${id}`
-    );
-  },
-};
+// Export singleton instance
+export const bookingStatusService =
+  new BookingStatusService();

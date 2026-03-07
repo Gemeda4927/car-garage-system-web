@@ -1,58 +1,69 @@
-import { api } from "./api";
 import {
-  GaragesListResponse,
-  GarageResponse,
-  LocationSearchParams,
-  GarageQueryParams,
+  CreateGaragePayload,
+  UpdateGaragePayload,
+  PopulatedGarage,
 } from "../types/garage.types";
+import { api } from "./api";
 
-export const garageApi = {
-  // Get all garages (with filters and pagination)
-  getGarages: async (
-    params?: GarageQueryParams
-  ): Promise<GaragesListResponse> => {
-    const queryParams = new URLSearchParams();
+export interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data: T;
+}
 
-    if (params) {
-      Object.entries(params).forEach(
-        ([key, value]) => {
-          if (
-            value !== undefined &&
-            value !== null
-          ) {
-            queryParams.append(
-              key,
-              value.toString()
-            );
-          }
-        }
-      );
-    }
+export interface GaragesResponse {
+  garages: PopulatedGarage[];
+  priceRange: {
+    minPrice: number;
+    maxPrice: number;
+    avgPrice: number;
+  };
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
 
-    const queryString = queryParams.toString();
-    const url = queryString
-      ? `/garages?${queryString}`
-      : "/garages";
+export interface GarageResponse {
+  garage: PopulatedGarage;
+}
 
-    return api.get<GaragesListResponse>(url);
-  },
+export const garageService = {
+  // Create Garage
+  create: (data: CreateGaragePayload) =>
+    api.post<ApiResponse<GarageResponse>>(
+      "garages",
+      data
+    ),
 
-  // Get single garage by ID
-  getGarageById: async (
-    id: string
-  ): Promise<GarageResponse> => {
-    return api.get<GarageResponse>(
-      `/garages/${id}`
-    );
-  },
+  // Get All Garages
+  getAll: (params?: Record<string, unknown>) =>
+    api.get<ApiResponse<GaragesResponse>>(
+      "garages",
+      { params }
+    ),
 
-  // Search garages by location
-  searchGaragesByLocation: async (
-    params: LocationSearchParams
-  ): Promise<GaragesListResponse> => {
-    const { lat, lng, radius = 10 } = params;
-    return api.get<GaragesListResponse>(
-      `/garages/search/location?lat=${lat}&lng=${lng}&radius=${radius}`
-    );
-  },
+  // Get Garage By ID
+  getById: (garageId: string) =>
+    api.get<ApiResponse<GarageResponse>>(
+      `garages/${garageId}`
+    ),
+
+  // Update Garage
+  update: (
+    garageId: string,
+    data: UpdateGaragePayload
+  ) =>
+    api.patch<ApiResponse<GarageResponse>>(
+      `garages/${garageId}`,
+      data
+    ),
+
+  // Soft Delete Garage
+  delete: (garageId: string) =>
+    api.delete<ApiResponse<null>>(
+      `/garages/${garageId}`
+    ),
 };

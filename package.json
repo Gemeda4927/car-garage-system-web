@@ -9,10 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",
     "axios": "^1.13.5",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.574.0",
+    "luxon": "^3.7.2",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",

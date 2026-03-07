@@ -8,7 +8,7 @@ export const authApi = {
   login: (
     data: LoginRequest
   ): Promise<LoginApiResponse> =>
-    api.post<LoginApiResponse, LoginRequest>(
+    api.post<LoginApiResponse>(
       "/auth/login",
       data
     ),
