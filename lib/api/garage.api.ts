@@ -66,4 +66,46 @@ export const garageService = {
     api.delete<ApiResponse<null>>(
       `/garages/${garageId}`
     ),
+
+  // =============================
+  // Additional APIs (Added)
+  // =============================
+
+  // Restore Soft Deleted Garage
+  restore: (garageId: string) =>
+    api.patch<ApiResponse<GarageResponse>>(
+      `/garages/${garageId}/restore`
+    ),
+
+  // Hard Delete Garage
+  hardDelete: (garageId: string) =>
+    api.delete<ApiResponse<null>>(
+      `/garages/${garageId}/force`
+    ),
+
+  // Get Deleted Garages
+  getDeleted: (params?: Record<string, unknown>) =>
+    api.get<ApiResponse<GaragesResponse>>(
+      "/garages/deleted",
+      { params }
+    ),
+
+  // Search Garages
+  search: (query: string) =>
+    api.get<ApiResponse<GaragesResponse>>(
+      "/garages/search",
+      { params: { q: query } }
+    ),
+
+  // Get Garages By Owner
+  getByOwner: (ownerId: string) =>
+    api.get<ApiResponse<GaragesResponse>>(
+      `/garages/owner/${ownerId}`
+    ),
+
+  // Toggle Garage Active Status
+  toggleActive: (garageId: string) =>
+    api.patch<ApiResponse<GarageResponse>>(
+      `/garages/${garageId}/toggle-active`
+    ),
 };
