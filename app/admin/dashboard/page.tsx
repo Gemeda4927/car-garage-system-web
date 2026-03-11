@@ -1,25 +1,23 @@
 // src/app/admin/page.tsx
 "use client";
 
-import {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-} from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import toast, { Toaster } from "react-hot-toast";
+
+// Hooks
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUser } from "@/lib/hooks/useUser";
 import { useGarage } from "@/lib/hooks/useGarage";
 import { usePaymentStoress } from "@/lib/store/payment.stores";
-import {
-  AnimatePresence,
-  motion,
-} from "framer-motion";
+
+// Components
 import { UserTable } from "@/components/UserTable";
 import { PaymentTable } from "@/components/PaymentTable";
 import { GarageTable } from "@/components/GarageTable";
-import toast, { Toaster } from "react-hot-toast";
+
+// Icons
 import {
   HiOutlineCog,
   HiOutlineChartBar,
@@ -30,7 +28,6 @@ import {
   HiOutlineUsers,
   HiOutlineSearch,
   HiOutlineDownload,
-  HiOutlineCash,
   HiOutlineCurrencyDollar,
   HiOutlineCheckCircle,
   HiOutlineClock,
@@ -41,10 +38,10 @@ import {
   HiOutlineUsers as HiOutlineUsers2,
   HiOutlineCreditCard,
 } from "react-icons/hi2";
-import {
-  Payment,
-  RefundPaymentRequest,
-} from "@/types/payment.type";
+
+// Types
+import type { Payment, RefundPaymentRequest } from "@/types/payment.type";
+import type { PopulatedGarage } from "@/lib/types/garage.types";
 
 type TabType =
   | "overview"
@@ -54,6 +51,7 @@ type TabType =
   | "payments"
   | "verifications"
   | "settings";
+
 type UserViewType = "active" | "deleted";
 type GarageViewType = "active" | "deleted";
 
@@ -96,9 +94,6 @@ export default function AdminDashboardPage() {
     fetchGarages,
     fetchDeletedGarages,
     fetchGarageStats,
-    createGarage,
-    updateGarage,
-    deleteGarage,
     restoreGarage,
     hardDeleteGarage,
     getLocalStats: getGarageLocalStats,
@@ -107,24 +102,14 @@ export default function AdminDashboardPage() {
   // Payment store
   const {
     payments,
-    selectedPayment,
     statistics,
     pagination: paymentPagination,
     isLoading: paymentsLoading,
-    isLoadingPayment,
-    isLoadingStatistics,
-    isRefunding,
-    isVerifying,
     error: paymentsError,
     fetchPayments,
-    fetchPaymentById,
     fetchStatistics,
     refundPayment,
     verifyPayment,
-    filters,
-    setFilters,
-    clearFilters,
-    clearSelectedPayment,
   } = usePaymentStoress();
 
   // State
@@ -141,12 +126,12 @@ export default function AdminDashboardPage() {
     () => getLocalStats(),
     [getLocalStats, users, deletedUsers]
   );
-  
+
   const garageLocalStats = useMemo(
     () => getGarageLocalStats(),
     [getGarageLocalStats, garages, deletedGarages]
   );
-  
+
   const userPaymentStats = useMemo(
     () => getPaymentStats(),
     [getPaymentStats, users]
@@ -157,12 +142,12 @@ export default function AdminDashboardPage() {
     () => payments.filter((p) => p.status === "COMPLETED"),
     [payments]
   );
-  
+
   const pendingPayments = useMemo(
     () => payments.filter((p) => p.status === "PENDING"),
     [payments]
   );
-  
+
   const totalRevenue = useMemo(
     () => completedPayments.reduce((sum, p) => sum + p.amount, 0),
     [completedPayments]
@@ -171,7 +156,6 @@ export default function AdminDashboardPage() {
   // Auth check
   useEffect(() => {
     if (!isAuthenticated || user?.role !== "admin") {
-      toast.error("Access denied. Redirecting to login...");
       router.push("/login");
     }
   }, [isAuthenticated, user, router]);
@@ -182,26 +166,25 @@ export default function AdminDashboardPage() {
       try {
         if (activeTab === "users") {
           if (userView === "active") {
-            await fetchUsers(1, 10);
+            await fetchUsers(1, DEFAULT_PAGE_LIMIT);
           } else {
             await fetchDeletedUsers();
           }
         } else if (activeTab === "garages") {
           if (garageView === "active") {
-            await fetchGarages({ page: 1, limit: 10 });
+            await fetchGarages({ page: 1, limit: DEFAULT_PAGE_LIMIT });
           } else {
             await fetchDeletedGarages();
           }
         } else if (activeTab === "overview") {
-
-await Promise.all([
-  fetchUsers(1, 5),
-  fetchGarages({ page: 1, limit: 5 }),
-  fetchPayments({ page: 1, limit: 5 }),
-  fetchStatistics("month"),
-]);
-
-
+          await Promise.allSettled([
+            fetchUsers(1, 5),
+            fetchGarages({ page: 1, limit: 5 }),
+            fetchPayments({ page: 1, limit: 5 }),
+            fetchStatistics("month"),
+            fetchUserStats(),
+            fetchGarageStats(),
+          ]);
         } else if (activeTab === "payments") {
           await Promise.allSettled([
             fetchPayments({
@@ -390,9 +373,9 @@ await Promise.all([
     const headers = ["Name", "Email", "Role", "Phone", "Can Create Garage", "Joined"];
     const rows = data.map((obj) =>
       [
-        obj.name,
-        obj.email,
-        obj.role,
+        `"${obj.name || ""}"`,
+        `"${obj.email || ""}"`,
+        obj.role || "",
         obj.phone || "",
         obj.canCreateGarage ? "Yes" : "No",
         new Date(obj.createdAt).toLocaleDateString(),
@@ -400,7 +383,7 @@ await Promise.all([
     );
 
     const csv = [headers.join(","), ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -420,17 +403,17 @@ await Promise.all([
     const headers = ["Name", "Address", "Owner", "Phone", "Status", "Created"];
     const rows = data.map((obj) =>
       [
-        obj.name,
-        obj.address?.street || "",
-        obj.owner?.name || obj.ownerId || "",
-        obj.phone || "",
+        `"${obj.name || ""}"`,
+        `"${obj.address?.street || ""}"`,
+        `"${obj.owner?.name || obj.ownerId || ""}"`,
+        obj.contactInfo?.phone || "",
         obj.isDeleted ? "Deleted" : "Active",
         new Date(obj.createdAt).toLocaleDateString(),
       ].join(",")
     );
 
     const csv = [headers.join(","), ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -483,26 +466,28 @@ await Promise.all([
   const handleRefresh = useCallback(() => {
     if (activeTab === "users") {
       if (userView === "active") {
-        fetchUsers(1, 10);
+        fetchUsers(1, DEFAULT_PAGE_LIMIT);
       } else {
         fetchDeletedUsers();
       }
     } else if (activeTab === "garages") {
       if (garageView === "active") {
-        fetchGarages({ page: 1, limit: 10 });
+        fetchGarages({ page: 1, limit: DEFAULT_PAGE_LIMIT });
       } else {
-        fetchDeletedGarages({ page: 1, limit: 10 });
+        fetchDeletedGarages();
       }
     } else if (activeTab === "payments") {
       fetchPayments({ page: paymentPage, limit: paymentLimit });
       fetchStatistics("month");
     } else if (activeTab === "overview") {
-      fetchUserStats();
-      fetchUsers(1, 5);
-      fetchGarages({ page: 1, limit: 5 });
-      fetchGarageStats();
-      fetchPayments({ page: 1, limit: 5 });
-      fetchStatistics("month");
+      Promise.allSettled([
+        fetchUserStats(),
+        fetchUsers(1, 5),
+        fetchGarages({ page: 1, limit: 5 }),
+        fetchGarageStats(),
+        fetchPayments({ page: 1, limit: 5 }),
+        fetchStatistics("month"),
+      ]);
     }
   }, [
     activeTab,
@@ -520,7 +505,7 @@ await Promise.all([
     fetchStatistics,
   ]);
 
-  // Pagination handlers with safe defaults based on your hooks
+  // Pagination handlers
   const handleUserPageChange = useCallback(
     (newPage: number) => {
       const limit = pagination?.limit || DEFAULT_PAGE_LIMIT;
@@ -553,19 +538,17 @@ await Promise.all([
     );
   }, [users, deletedUsers, userView, searchTerm]);
 
-// In your admin page, ensure filteredGarages is always an array
-const filteredGarages = useMemo(() => {
-  const sourceGarages = garageView === "active" ? garages || [] : deletedGarages || [];
-  if (!garageSearchTerm.trim()) return sourceGarages;
+  const filteredGarages = useMemo(() => {
+    const sourceGarages = garageView === "active" ? garages || [] : deletedGarages || [];
+    if (!garageSearchTerm.trim()) return sourceGarages;
 
-  return sourceGarages.filter(
-    (garage) =>
-      garage.name?.toLowerCase().includes(garageSearchTerm.toLowerCase()) ||
-      garage.address?.street?.toLowerCase().includes(garageSearchTerm.toLowerCase()) ||
-      garage.owner?.name?.toLowerCase().includes(garageSearchTerm.toLowerCase())
-  );
-}, [garages, deletedGarages, garageView, garageSearchTerm]);
-
+    return sourceGarages.filter(
+      (garage) =>
+        garage.name?.toLowerCase().includes(garageSearchTerm.toLowerCase()) ||
+        garage.address?.street?.toLowerCase().includes(garageSearchTerm.toLowerCase()) ||
+        garage.owner?.name?.toLowerCase().includes(garageSearchTerm.toLowerCase())
+    );
+  }, [garages, deletedGarages, garageView, garageSearchTerm]);
 
   if (!user) {
     return (
@@ -623,6 +606,20 @@ const filteredGarages = useMemo(() => {
     },
   ];
 
+  const getColorClasses = (color: string, isActive: boolean) => {
+    const colorMap: Record<string, { bg: string; text: string; hover: string }> = {
+      indigo: { bg: "bg-indigo-50", text: "text-indigo-600", hover: "hover:bg-indigo-50" },
+      blue: { bg: "bg-blue-50", text: "text-blue-600", hover: "hover:bg-blue-50" },
+      green: { bg: "bg-green-50", text: "text-green-600", hover: "hover:bg-green-50" },
+      purple: { bg: "bg-purple-50", text: "text-purple-600", hover: "hover:bg-purple-50" },
+      pink: { bg: "bg-pink-50", text: "text-pink-600", hover: "hover:bg-pink-50" },
+      yellow: { bg: "bg-yellow-50", text: "text-yellow-600", hover: "hover:bg-yellow-50" },
+      gray: { bg: "bg-gray-50", text: "text-gray-600", hover: "hover:bg-gray-50" },
+    };
+
+    return colorMap[color] || colorMap.gray;
+  };
+
   return (
     <div className="min-h-screen flex bg-gray-50">
       <Toaster
@@ -665,9 +662,11 @@ const filteredGarages = useMemo(() => {
           </motion.div>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-2">
+        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
           {menuItems.map((item) => {
             const isActive = activeTab === item.key;
+            const colors = getColorClasses(item.color, isActive);
+
             return (
               <motion.button
                 key={item.key}
@@ -676,13 +675,11 @@ const filteredGarages = useMemo(() => {
                 onClick={() => setActiveTab(item.key)}
                 className={`flex items-center gap-3 w-full px-4 py-3 text-left text-sm font-medium rounded-lg transition-all ${
                   isActive
-                    ? `bg-${item.color}-50 text-${item.color}-600 shadow-md`
-                    : "text-gray-600 hover:bg-gray-50 hover:text-indigo-600"
+                    ? `${colors.bg} ${colors.text} shadow-md`
+                    : "text-gray-600 hover:bg-gray-50"
                 }`}
               >
-                <item.icon
-                  className={`w-5 h-5 ${isActive ? `text-${item.color}-600` : ""}`}
-                />
+                <item.icon className={`w-5 h-5 ${isActive ? colors.text : ""}`} />
                 <span className="flex-1">{item.label}</span>
                 {item.key === "users" && (
                   <span className="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full text-xs">
@@ -709,7 +706,7 @@ const filteredGarages = useMemo(() => {
             className="flex items-center gap-3 mb-3 px-2"
             whileHover={{ scale: 1.02 }}
           >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
               <span className="text-lg font-semibold text-white">
                 {user.name?.charAt(0) || "A"}
               </span>
@@ -824,7 +821,7 @@ const filteredGarages = useMemo(() => {
               </div>
 
               {/* Recent Users */}
-              {localStats.recentUsers.length > 0 && (
+              {localStats.recentUsers && localStats.recentUsers.length > 0 && (
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">
                     Recent Users
@@ -836,17 +833,17 @@ const filteredGarages = useMemo(() => {
                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
                             <span className="text-sm font-semibold text-indigo-600">
                               {user.name.charAt(0)}
                             </span>
                           </div>
-                          <div>
-                            <p className="font-medium text-sm">{user.name}</p>
-                            <p className="text-xs text-gray-500">{user.email}</p>
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{user.name}</p>
+                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-medium ${
                               user.role === "garage_owner"
@@ -869,7 +866,7 @@ const filteredGarages = useMemo(() => {
               )}
 
               {/* Recent Garages */}
-              {garages.length > 0 && (
+              {garages && garages.length > 0 && (
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold text-gray-800">
@@ -889,18 +886,18 @@ const filteredGarages = useMemo(() => {
                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
                             <HiOutlineBuildingOffice className="w-4 h-4 text-green-600" />
                           </div>
-                          <div>
-                            <p className="font-medium text-sm">{garage.name}</p>
-                            <p className="text-xs text-gray-500">
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{garage.name}</p>
+                            <p className="text-xs text-gray-500 truncate">
                               {garage.address?.street || "No address"} • 
                               Owner: {garage.owner?.name || "Unknown"}
                             </p>
                           </div>
                         </div>
-                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs flex-shrink-0">
                           Active
                         </span>
                       </div>
@@ -910,7 +907,7 @@ const filteredGarages = useMemo(() => {
               )}
 
               {/* Recent Payments */}
-              {payments.length > 0 && (
+              {payments && payments.length > 0 && (
                 <div className="mt-8">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold text-gray-800">
@@ -1112,7 +1109,7 @@ const filteredGarages = useMemo(() => {
                     }`}
                   >
                     <HiOutlineBuildingOffice className="w-4 h-4" />
-                    Active ({garages.length})
+                    Active ({garages?.length || 0})
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -1125,7 +1122,7 @@ const filteredGarages = useMemo(() => {
                     }`}
                   >
                     <HiOutlineTrash className="w-4 h-4" />
-                    {/* Trash ({deletedGarages.length}) */}
+                    Trash ({deletedGarages?.length || 0})
                   </motion.button>
                 </div>
               </div>
@@ -1166,7 +1163,7 @@ const filteredGarages = useMemo(() => {
                     <span className="hidden sm:inline">Export</span>
                   </motion.button>
 
-                  {garageView === "deleted" && deletedGarages.length > 0 && (
+                  {garageView === "deleted" && deletedGarages?.length > 0 && (
                     <>
                       <motion.button
                         whileHover={{ scale: 1.02 }}

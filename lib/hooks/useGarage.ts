@@ -1,227 +1,615 @@
+import { useCallback } from "react";
 import { useGarageStore } from "../store/garage.store";
 import type {
   PopulatedGarage,
   UserSummary,
+  GarageService,
+  ServiceBooking,
+  GarageReview,
+  GarageAnalyticsData,
+  DeletedGaragesStats,
+  UnverifiedGaragesStats,
+  CategorySummary,
+  ReviewsSummary,
+  BookingsStats,
+  VerifyGaragePayload,
+  UploadFilesPayload,
 } from "@/lib/types/garage.types";
+import type { CompleteGaragesData } from "../api/garage.api";
 
 export const useGarage = () => {
   const store = useGarageStore();
 
-  /* ===================================================== */
-  /* BASIC HELPERS */
+  /* ============================ */
+  /* COMPLETE DATA HELPERS - NEW
+  /* ============================ */
 
-  const getGarageById = (id: string): PopulatedGarage | null => {
-    if (!id) return null;
-    return store.garages?.find((g) => g._id === id) || null;
-  };
+  const getCompleteData =
+    (): CompleteGaragesData | null =>
+      store.completeData;
 
-  const hasGarage = (): boolean => {
-    return !!store.garage;
-  };
+  const getCompleteStats = () =>
+    store.completeData?.stats;
 
-  const getGarageCount = (): number => {
-    return store.garages?.length || 0;
-  };
+  const getCollections = () =>
+    store.completeData?.collections;
 
-  /* ===================================================== */
-  /* OWNER INFO */
+  const getAllServices = () =>
+    store.completeData?.collections.services ||
+    [];
+
+  const getAllBookings = () =>
+    store.completeData?.collections.bookings ||
+    [];
+
+  const getAllReviews = () =>
+    store.completeData?.collections.reviews || [];
+
+  const getAllPayments = () =>
+    store.completeData?.collections.payments ||
+    [];
+
+  const getAllOwners = () =>
+    store.completeData?.collections.owners || [];
+
+  const getPricingInfo = () =>
+    store.completeData?.pricing;
+
+  const getGlobalPriceRange = () =>
+    store.completeData?.pricing.global;
+
+  const getGaragePricing = (garageId: string) =>
+    store.completeData?.pricing.byGarage.find(
+      (g) => g.garageId === garageId
+    );
+
+  const getGroups = () =>
+    store.completeData?.groups;
+
+  const getGaragesByCity = (city: string) =>
+    store.completeData?.groups.byCity[city];
+
+  const getVerifiedGaragesList = () =>
+    store.completeData?.groups
+      .byVerificationStatus.verified || [];
+
+  const getUnverifiedGaragesList = () =>
+    store.completeData?.groups
+      .byVerificationStatus.unverified || [];
+
+  const getDeletedGaragesList = () =>
+    store.completeData?.groups.byDeletionStatus
+      .deleted || [];
+
+  const getActiveGaragesIds = () =>
+    store.completeData?.groups.byDeletionStatus
+      .active || [];
+
+  const getGaragesByStatus = (status: string) =>
+    store.completeData?.groups.byStatus[status] ||
+    [];
+
+  const getTimelineData = () =>
+    store.completeData?.timeline;
+
+  const getCreatedByMonth = () =>
+    store.completeData?.timeline.createdByMonth ||
+    {};
+
+  const getVerifiedByMonth = () =>
+    store.completeData?.timeline
+      .verifiedByMonth || {};
+
+  const getMetadata = () =>
+    store.completeData?.metadata;
+
+  const getDatabaseStats = () =>
+    store.completeData?.metadata.databaseStats;
+
+  /* ============================ */
+  /* BASIC HELPERS
+  /* ============================ */
+
+  const getGarageById = (
+    id: string
+  ): PopulatedGarage | null =>
+    store.garages?.find((g) => g._id === id) ||
+    null;
+
+  const hasGarage = (): boolean => !!store.garage;
+
+  const getGarageCount = (): number =>
+    store.garages?.length || 0;
+
+  /* ============================ */
+  /* OWNER
+  /* ============================ */
 
   const getOwnerInfo = (): UserSummary | null => {
-    if (!store.garage) return null;
-
-    if (typeof store.garage.owner === "object") {
-      return store.garage.owner;
-    }
-
-    return null;
+    const owner = store.garage?.owner;
+    return typeof owner === "object"
+      ? owner
+      : null;
   };
 
-  const isGarageOwner = (userId?: string): boolean => {
+  const isGarageOwner = (
+    userId?: string
+  ): boolean => {
     if (!store.garage || !userId) return false;
 
-    if (typeof store.garage.owner === "string") {
-      return store.garage.owner === userId;
+    const owner = store.garage.owner;
+
+    return typeof owner === "string"
+      ? owner === userId
+      : owner?._id === userId;
+  };
+
+  /* ============================ */
+  /* SERVICES
+  /* ============================ */
+
+  const getServices = (): GarageService[] =>
+    store.garage?.services ?? [];
+
+  const getServiceById = (
+    serviceId: string
+  ): GarageService | null =>
+    store.garage?.services?.find(
+      (s) => s._id === serviceId
+    ) || null;
+
+  /* ============================ */
+  /* BOOKINGS
+  /* ============================ */
+
+  const getBookings = (): ServiceBooking[] =>
+    (store.garage?.services || []).flatMap(
+      (s) => s.bookings || []
+    );
+
+  const getPendingBookings =
+    (): ServiceBooking[] =>
+      getBookings().filter(
+        (b) => b.status === "pending"
+      );
+
+  const getCompletedBookings =
+    (): ServiceBooking[] =>
+      getBookings().filter(
+        (b) => b.status === "completed"
+      );
+
+  const getUpcomingBookings =
+    (): ServiceBooking[] =>
+      getBookings().filter(
+        (b) =>
+          b.status === "approved" &&
+          new Date(b.bookingDate) > new Date()
+      );
+
+  const getTodaysBookings =
+    (): ServiceBooking[] => {
+      const today = new Date()
+        .toISOString()
+        .split("T")[0];
+      return getBookings().filter(
+        (b) =>
+          b.bookingDate.startsWith(today) &&
+          ["pending", "approved"].includes(
+            b.status
+          )
+      );
+    };
+
+  /* ============================ */
+  /* REVIEWS
+  /* ============================ */
+
+  const getReviews = (): GarageReview[] =>
+    store.garage?.reviews || [];
+
+  const getAverageRating = (): number => {
+    const reviews = getReviews();
+    if (reviews.length === 0) return 0;
+    const sum = reviews.reduce(
+      (acc, review) => acc + review.rating,
+      0
+    );
+    return parseFloat(
+      (sum / reviews.length).toFixed(1)
+    );
+  };
+
+  /* ============================ */
+  /* LOCAL STATS (Using complete data when available)
+  /* ============================ */
+
+  const getLocalStats = useCallback(() => {
+    // If complete data is available, use that for more accurate stats
+    if (store.completeData) {
+      const stats = store.completeData.stats;
+      const collections =
+        store.completeData.collections;
+
+      return {
+        totalGarages: stats.totalGarages,
+        activeGarages: stats.totalActive,
+        deletedGarages: stats.totalDeleted,
+        verifiedGarages: stats.totalVerified,
+        pendingGarages: stats.totalPending,
+        suspendedGarages: stats.totalSuspended,
+        totalBookings: stats.bookings.total,
+        totalRevenue: stats.bookings.totalRevenue,
+        avgRating: stats.reviews.averageRating,
+        recentGarages:
+          store.completeData.garages.slice(0, 5),
+        // Additional stats from complete data
+        totalServices: stats.services.total,
+        totalReviews: stats.reviews.total,
+        totalPayments: stats.payments.total,
+        totalOwners: stats.owners.total,
+        totalImages: stats.files.totalImages,
+        totalDocuments:
+          stats.files.totalDocuments,
+        servicePriceRange:
+          stats.services.priceRange,
+        bookingStats: stats.bookings,
+        reviewStats: stats.reviews,
+        paymentStats: stats.payments,
+      };
     }
 
-    return store.garage.owner?._id === userId;
-  };
+    // Fallback to local calculation if complete data not available
+    const garages = store.garages || [];
+    const deletedGarages =
+      store.garages?.filter((g) => g.isDeleted) ||
+      [];
 
-  /* ===================================================== */
-  /* GARAGE DATA */
+    const totalGarages = garages.length;
+    const activeGarages = garages.filter(
+      (g) => g.isActive && !g.isDeleted
+    ).length;
+    const deletedGaragesCount =
+      deletedGarages.length;
+    const verifiedGarages = garages.filter(
+      (g) => g.isVerified && !g.isDeleted
+    ).length;
+    const pendingGarages = garages.filter(
+      (g) => !g.isVerified && !g.isDeleted
+    ).length;
+    const suspendedGarages = garages.filter(
+      (g) =>
+        g.status === "suspended" && !g.isDeleted
+    ).length;
 
-  const getGarageStats = () => {
-    return store.garage?.stats || null;
-  };
+    // Calculate total bookings across all garages
+    const totalBookings = garages.reduce(
+      (sum, garage) =>
+        sum + (garage.stats?.totalBookings || 0),
+      0
+    );
 
-  const getAddress = () => {
-    return store.garage?.address || null;
-  };
+    // Calculate total revenue across all garages
+    const totalRevenue = garages.reduce(
+      (sum, garage) => {
+        // This would need proper calculation from bookings
+        return sum;
+      },
+      0
+    );
 
-  const getContactInfo = () => {
-    return store.garage?.contactInfo || null;
-  };
-
-  const getBusinessHours = () => {
-    return store.garage?.businessHours || null;
-  };
-
-  /* ===================================================== */
-  /* VERIFICATION */
-
-  const getVerificationInfo = () => {
-    if (!store.garage) return null;
+    // Calculate average rating across all garages
+    const avgRating =
+      garages.reduce(
+        (sum, garage) =>
+          sum +
+          (garage.stats?.averageRating || 0),
+        0
+      ) / (garages.length || 1) || 0;
 
     return {
-      isVerified: store.garage.isVerified,
-      verifiedAt: store.garage.verifiedAt,
-      verifiedBy: store.garage.verifiedBy,
-      status: store.garage.status,
+      totalGarages,
+      activeGarages,
+      deletedGarages: deletedGaragesCount,
+      verifiedGarages,
+      pendingGarages,
+      suspendedGarages,
+      totalBookings,
+      totalRevenue,
+      avgRating: parseFloat(avgRating.toFixed(1)),
+      recentGarages: garages.slice(0, 5),
     };
+  }, [store.garages, store.completeData]);
+
+  /* ============================ */
+  /* FILTERS (Enhanced with complete data)
+  /* ============================ */
+
+  const getVerifiedGarages =
+    (): PopulatedGarage[] =>
+      store.garages?.filter(
+        (g) => g.isVerified
+      ) || [];
+
+  const getActiveGarages =
+    (): PopulatedGarage[] =>
+      store.garages?.filter((g) => g.isActive) ||
+      [];
+
+  const getDeletedGarages =
+    (): PopulatedGarage[] =>
+      store.garages?.filter((g) => g.isDeleted) ||
+      [];
+
+  const getPendingVerificationGarages =
+    (): PopulatedGarage[] =>
+      store.garages?.filter(
+        (g) => !g.isVerified && !g.isDeleted
+      ) || [];
+
+  const getSuspendedGarages =
+    (): PopulatedGarage[] =>
+      store.garages?.filter(
+        (g) =>
+          g.status === "suspended" && !g.isDeleted
+      ) || [];
+
+  /* ============================ */
+  /* ADVANCED QUERIES (Using complete data)
+  /* ============================ */
+
+  const findGarageByServicePrice = (
+    minPrice?: number,
+    maxPrice?: number
+  ) => {
+    if (!store.completeData) return [];
+
+    return store.completeData.pricing.byGarage.filter(
+      (garage) =>
+        garage.services.some(
+          (service) =>
+            (!minPrice ||
+              service.price >= minPrice) &&
+            (!maxPrice ||
+              service.price <= maxPrice)
+        )
+    );
   };
 
-  /* ===================================================== */
-  /* TIMESTAMPS */
+  const getTopRatedGarages = (
+    limit: number = 10
+  ) => {
+    if (!store.completeData) return [];
 
-  const getTimestamps = () => {
-    if (!store.garage) return null;
-
-    return {
-      createdAt: store.garage.createdAt,
-      updatedAt: store.garage.updatedAt,
-      paidAt: store.garage.paidAt,
-    };
-  };
-
-  /* ===================================================== */
-  /* FILTER HELPERS */
-
-  const getVerifiedGarages = (): PopulatedGarage[] => {
-    return store.garages?.filter((g) => g.isVerified) || [];
-  };
-
-  const getUnverifiedGarages = (): PopulatedGarage[] => {
-    return store.garages?.filter((g) => !g.isVerified) || [];
-  };
-
-  const getActiveGarages = (): PopulatedGarage[] => {
-    return store.garages?.filter((g) => g.status === "active") || [];
-  };
-
-  const getDeletedGarages = (): PopulatedGarage[] => {
-    return store.garages?.filter((g) => g.isDeleted) || [];
-  };
-
-  /* ===================================================== */
-  /* DASHBOARD STATS */
-
-  const getLocalStats = () => {
-    const garagesList = store.garages || [];
-
-    const activeGarages = garagesList.filter((g) => !g.isDeleted);
-    const deletedGarages = garagesList.filter((g) => g.isDeleted);
-
-    const verifiedGarages = activeGarages.filter((g) => g.isVerified);
-    const unverifiedGarages = activeGarages.filter((g) => !g.isVerified);
-
-    const recentGarages = [...activeGarages]
+    return [...store.completeData.garages]
       .sort(
         (a, b) =>
-          new Date(b.createdAt).getTime() -
-          new Date(a.createdAt).getTime()
+          (b.stats?.averageRating || 0) -
+          (a.stats?.averageRating || 0)
       )
-      .slice(0, 5);
-
-    return {
-      totalGarages: garagesList.length,
-      activeGarages: activeGarages.length,
-      deletedGarages: deletedGarages.length,
-      verifiedGarages: verifiedGarages.length,
-      unverifiedGarages: unverifiedGarages.length,
-      recentGarages,
-
-      garagesWithAddress: activeGarages.filter(
-        (g) => g.address && Object.keys(g.address).length > 0
-      ).length,
-
-      garagesWithContact: activeGarages.filter(
-        (g) =>
-          g.contactInfo &&
-          Object.keys(g.contactInfo).length > 0
-      ).length,
-
-      garagesWithHours: activeGarages.filter(
-        (g) =>
-          g.businessHours &&
-          Object.keys(g.businessHours).length > 0
-      ).length,
-    };
+      .slice(0, limit);
   };
 
-  /* ===================================================== */
-  /* RETURN API */
+  const getMostBookedGarages = (
+    limit: number = 10
+  ) => {
+    if (!store.completeData) return [];
+
+    return [...store.completeData.garages]
+      .sort(
+        (a, b) =>
+          (b.stats?.totalBookings || 0) -
+          (a.stats?.totalBookings || 0)
+      )
+      .slice(0, limit);
+  };
+
+  const getGaragesByCategory = (
+    category: string
+  ) => {
+    if (!store.completeData) return [];
+
+    return store.completeData.garages.filter(
+      (garage) =>
+        garage.services?.some(
+          (service) =>
+            service.category === category
+        )
+    );
+  };
+
+  const getServicesByCategory = (
+    category: string
+  ) => {
+    if (!store.completeData) return [];
+
+    return store.completeData.collections.services.filter(
+      (service) => service.category === category
+    );
+  };
+
+  const getBookingsByDateRange = (
+    startDate: Date,
+    endDate: Date
+  ) => {
+    if (!store.completeData) return [];
+
+    return store.completeData.collections.bookings.filter(
+      (booking) => {
+        const bookingDate = new Date(
+          booking.bookingDate
+        );
+        return (
+          bookingDate >= startDate &&
+          bookingDate <= endDate
+        );
+      }
+    );
+  };
+
+  const getReviewsByRating = (rating: number) => {
+    if (!store.completeData) return [];
+
+    return store.completeData.collections.reviews.filter(
+      (review) => review.rating === rating
+    );
+  };
+
+  const getPaymentStatsByMethod = (
+    method: string
+  ) => {
+    if (!store.completeData) return 0;
+
+    return (
+      store.completeData.stats.payments.byMethod[
+        method
+      ] || 0
+    );
+  };
+
+  const getRevenueByPeriod = (
+    period: "day" | "week" | "month" | "year"
+  ) => {
+    if (!store.completeData) return 0;
+
+    // This would need more sophisticated calculation based on timeline data
+    return store.completeData.stats.bookings
+      .totalRevenue;
+  };
+
+  /* ============================ */
+  /* RETURN
+  /* ============================ */
 
   return {
-    /* ================= STATE ================= */
-
+    // State
     garage: store.garage,
     garages: store.garages,
+    nearbyGarages: store.nearbyGarages,
+    deletedGarages: store.deletedGarages,
+    unverifiedGarages: store.unverifiedGarages,
+    garageServices: store.garageServices,
+    garageReviews: store.garageReviews,
+    garageBookings: store.garageBookings,
+    garageAnalytics: store.garageAnalytics,
+
+    // NEW: Complete data state
+    completeData: store.completeData,
+
     loading: store.loading,
     error: store.error,
+    actionLoading: store.actionLoading,
+
     pagination: store.pagination,
     priceRange: store.priceRange,
+    deletedGaragesStats:
+      store.deletedGaragesStats,
+    unverifiedGaragesStats:
+      store.unverifiedGaragesStats,
+    servicesPagination: store.servicesPagination,
+    reviewsPagination: store.reviewsPagination,
+    bookingsPagination: store.bookingsPagination,
 
-    /* ================= ACTIONS ================= */
-
+    // Actions
     fetchGarages: store.fetchGarages,
     fetchGarage: store.fetchGarage,
-    fetchMyGarage: store.fetchMyGarage,
+    fetchNearbyGarages: store.fetchNearbyGarages,
+    fetchDeletedGarages:
+      store.fetchDeletedGarages,
+    fetchUnverifiedGarages:
+      store.fetchUnverifiedGarages,
+    fetchGarageServices:
+      store.fetchGarageServices,
+    fetchGarageReviews: store.fetchGarageReviews,
+    fetchGarageBookings:
+      store.fetchGarageBookings,
+    fetchGarageAnalytics:
+      store.fetchGarageAnalytics,
+
+    // NEW: Fetch complete data action
+    fetchCompleteData: store.fetchCompleteData,
 
     createGarage: store.createGarage,
     updateGarage: store.updateGarage,
     deleteGarage: store.deleteGarage,
-
     restoreGarage: store.restoreGarage,
-    hardDeleteGarage: store.hardDeleteGarage,
 
-    searchGarages: store.searchGarages,
-    fetchDeletedGarages: store.fetchDeletedGarages,
+    verifyGarage: store.verifyGarage,
+    toggleActiveGarage: store.toggleActiveGarage,
+
+    uploadFiles: store.uploadFiles,
+    deleteFile: store.deleteFile,
 
     clearError: store.clearError,
     resetGarage: store.resetGarage,
+    resetGarageServices:
+      store.resetGarageServices,
+    resetGarageReviews: store.resetGarageReviews,
+    resetGarageBookings:
+      store.resetGarageBookings,
 
-    /* ================= HELPERS ================= */
-
+    // Helpers
     getGarageById,
     hasGarage,
     getGarageCount,
-
     getOwnerInfo,
     isGarageOwner,
 
-    getGarageStats,
-    getAddress,
-    getContactInfo,
-    getBusinessHours,
+    getServices,
+    getServiceById,
 
-    getVerificationInfo,
-    getTimestamps,
+    getBookings,
+    getPendingBookings,
+    getCompletedBookings,
+    getUpcomingBookings,
+    getTodaysBookings,
+
+    getReviews,
+    getAverageRating,
 
     getVerifiedGarages,
-    getUnverifiedGarages,
     getActiveGarages,
     getDeletedGarages,
+    getPendingVerificationGarages,
+    getSuspendedGarages,
 
+    // Local Stats
     getLocalStats,
 
-    /* ================= ALIASES ================= */
+    // NEW: Complete data helpers
+    getCompleteData,
+    getCompleteStats,
+    getCollections,
+    getAllServices,
+    getAllBookings,
+    getAllReviews,
+    getAllPayments,
+    getAllOwners,
+    getPricingInfo,
+    getGlobalPriceRange,
+    getGaragePricing,
+    getGroups,
+    getGaragesByCity,
+    getVerifiedGaragesList,
+    getUnverifiedGaragesList,
+    getDeletedGaragesList,
+    getActiveGaragesIds,
+    getGaragesByStatus,
+    getTimelineData,
+    getCreatedByMonth,
+    getVerifiedByMonth,
+    getMetadata,
+    getDatabaseStats,
 
-    getMyGarage: store.fetchMyGarage,
-    addGarage: store.createGarage,
-    editGarage: store.updateGarage,
-    removeGarage: store.deleteGarage,
-
-    restore: store.restoreGarage,
-    forceDelete: store.hardDeleteGarage,
-    search: store.searchGarages,
+    // NEW: Advanced queries
+    findGarageByServicePrice,
+    getTopRatedGarages,
+    getMostBookedGarages,
+    getGaragesByCategory,
+    getServicesByCategory,
+    getBookingsByDateRange,
+    getReviewsByRating,
+    getPaymentStatsByMethod,
+    getRevenueByPeriod,
   };
 };
