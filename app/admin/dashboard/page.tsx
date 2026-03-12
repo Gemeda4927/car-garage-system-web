@@ -1,9 +1,17 @@
 // src/app/admin/page.tsx
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+} from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 
 // Hooks
@@ -37,11 +45,17 @@ import {
   HiOutlineClipboardDocumentList,
   HiOutlineUsers as HiOutlineUsers2,
   HiOutlineCreditCard,
+  HiOutlineWrench,
 } from "react-icons/hi2";
 
 // Types
-import type { Payment, RefundPaymentRequest } from "@/types/payment.type";
+import type {
+  Payment,
+  RefundPaymentRequest,
+} from "@/types/payment.type";
 import type { PopulatedGarage } from "@/lib/types/garage.types";
+import ServiceTable from "@/components/ServiceTable";
+import BookingTable from "@/components/BookingTable";
 
 type TabType =
   | "overview"
@@ -51,7 +65,6 @@ type TabType =
   | "payments"
   | "verifications"
   | "settings";
-
 type UserViewType = "active" | "deleted";
 type GarageViewType = "active" | "deleted";
 
@@ -66,7 +79,8 @@ const DEFAULT_PAGE_LIMIT = 10;
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout } =
+    useAuth();
 
   // User hook
   const {
@@ -77,11 +91,9 @@ export default function AdminDashboardPage() {
     pagination,
     fetchUsers,
     fetchDeletedUsers,
-    fetchUserStats,
     restoreUser,
     hardDeleteUser,
     getLocalStats,
-    getPaymentStats,
   } = useUser();
 
   // Garage hook
@@ -93,7 +105,6 @@ export default function AdminDashboardPage() {
     pagination: garagePagination,
     fetchGarages,
     fetchDeletedGarages,
-    fetchGarageStats,
     restoreGarage,
     hardDeleteGarage,
     getLocalStats: getGarageLocalStats,
@@ -113,49 +124,94 @@ export default function AdminDashboardPage() {
   } = usePaymentStoress();
 
   // State
-  const [activeTab, setActiveTab] = useState<TabType>("overview");
-  const [userView, setUserView] = useState<UserViewType>("active");
-  const [garageView, setGarageView] = useState<GarageViewType>("active");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [garageSearchTerm, setGarageSearchTerm] = useState("");
-  const [paymentPage, setPaymentPage] = useState(1);
+  const [activeTab, setActiveTab] =
+    useState<TabType>("overview");
+  const [userView, setUserView] =
+    useState<UserViewType>("active");
+  const [garageView, setGarageView] =
+    useState<GarageViewType>("active");
+  const [searchTerm, setSearchTerm] =
+    useState("");
+  const [garageSearchTerm, setGarageSearchTerm] =
+    useState("");
+  const [paymentPage, setPaymentPage] =
+    useState(1);
   const [paymentLimit] = useState(20);
+
+  // Garage view states
+  const [showDeleted, setShowDeleted] =
+    useState(false);
+  const [showUnverified, setShowUnverified] =
+    useState(false);
+  const [showComplete, setShowComplete] =
+    useState(false);
+
+  const handleViewChange = (
+    view:
+      | "regular"
+      | "deleted"
+      | "unverified"
+      | "complete"
+  ) => {
+    setShowDeleted(false);
+    setShowUnverified(false);
+    setShowComplete(false);
+
+    switch (view) {
+      case "deleted":
+        setShowDeleted(true);
+        break;
+      case "unverified":
+        setShowUnverified(true);
+        break;
+      case "complete":
+        setShowComplete(true);
+        break;
+      default:
+        break;
+    }
+  };
 
   // Memoized values
   const localStats = useMemo(
     () => getLocalStats(),
     [getLocalStats, users, deletedUsers]
   );
-
   const garageLocalStats = useMemo(
     () => getGarageLocalStats(),
     [getGarageLocalStats, garages, deletedGarages]
   );
 
-  const userPaymentStats = useMemo(
-    () => getPaymentStats(),
-    [getPaymentStats, users]
-  );
-
   // Payment derived values
   const completedPayments = useMemo(
-    () => payments.filter((p) => p.status === "COMPLETED"),
+    () =>
+      payments.filter(
+        (p) => p.status === "COMPLETED"
+      ),
     [payments]
   );
-
   const pendingPayments = useMemo(
-    () => payments.filter((p) => p.status === "PENDING"),
+    () =>
+      payments.filter(
+        (p) => p.status === "PENDING"
+      ),
     [payments]
   );
-
   const totalRevenue = useMemo(
-    () => completedPayments.reduce((sum, p) => sum + p.amount, 0),
+    () =>
+      completedPayments.reduce(
+        (sum, p) => sum + p.amount,
+        0
+      ),
     [completedPayments]
   );
 
   // Auth check
   useEffect(() => {
-    if (!isAuthenticated || user?.role !== "admin") {
+    if (
+      !isAuthenticated ||
+      user?.role !== "admin"
+    ) {
       router.push("/login");
     }
   }, [isAuthenticated, user, router]);
@@ -166,24 +222,28 @@ export default function AdminDashboardPage() {
       try {
         if (activeTab === "users") {
           if (userView === "active") {
-            await fetchUsers(1, DEFAULT_PAGE_LIMIT);
+            await fetchUsers(
+              1,
+              DEFAULT_PAGE_LIMIT
+            );
           } else {
             await fetchDeletedUsers();
           }
         } else if (activeTab === "garages") {
           if (garageView === "active") {
-            await fetchGarages({ page: 1, limit: DEFAULT_PAGE_LIMIT });
+            await fetchGarages({
+              page: 1,
+              limit: DEFAULT_PAGE_LIMIT,
+            });
           } else {
             await fetchDeletedGarages();
           }
         } else if (activeTab === "overview") {
           await Promise.allSettled([
+            fetchStatistics("month"),
             fetchUsers(1, 5),
             fetchGarages({ page: 1, limit: 5 }),
             fetchPayments({ page: 1, limit: 5 }),
-            fetchStatistics("month"),
-            fetchUserStats(),
-            fetchGarageStats(),
           ]);
         } else if (activeTab === "payments") {
           await Promise.allSettled([
@@ -208,10 +268,8 @@ export default function AdminDashboardPage() {
     paymentLimit,
     fetchUsers,
     fetchDeletedUsers,
-    fetchUserStats,
     fetchGarages,
     fetchDeletedGarages,
-    fetchGarageStats,
     fetchPayments,
     fetchStatistics,
   ]);
@@ -235,71 +293,104 @@ export default function AdminDashboardPage() {
           "⚠️ Are you sure? This action is permanent and cannot be undone!"
         )
       ) {
-        await toast.promise(hardDeleteUser(userId), {
-          loading: "Deleting user permanently...",
-          success: "User permanently deleted!",
-          error: "Failed to delete user",
-        });
+        await toast.promise(
+          hardDeleteUser(userId),
+          {
+            loading:
+              "Deleting user permanently...",
+            success: "User permanently deleted!",
+            error: "Failed to delete user",
+          }
+        );
       }
     },
     [hardDeleteUser]
   );
 
-  const handleBulkRestoreUsers = useCallback(async () => {
-    if (deletedUsers.length === 0) {
-      toast.error("No users to restore");
-      return;
-    }
+const services = [
+  {
+    _id: "1",
+    name: "Oil Change",
+    category: "Maintenance",
+    price: 50,
+    isActive: true,
+    garage: { name: "AutoFix Garage" },
+  },
+];
 
-    if (
-      window.confirm(
-        `Restore all ${deletedUsers.length} deleted users?`
-      )
-    ) {
-      await toast.promise(
-        Promise.all(deletedUsers.map((u) => restoreUser(u._id))),
-        {
-          loading: `Restoring ${deletedUsers.length} users...`,
-          success: `Successfully restored ${deletedUsers.length} users!`,
-          error: "Failed to restore some users",
-        }
-      );
-    }
-  }, [deletedUsers, restoreUser]);
 
-  const handleEmptyUserTrash = useCallback(async () => {
-    if (deletedUsers.length === 0) {
-      toast.error("Trash is already empty");
-      return;
-    }
 
-    if (
-      window.confirm(
-        `⚠️ Permanently delete all ${deletedUsers.length} users? This cannot be undone!`
-      )
-    ) {
-      await toast.promise(
-        Promise.all(deletedUsers.map((u) => hardDeleteUser(u._id))),
-        {
-          loading: `Emptying trash (${deletedUsers.length} users)...`,
-          success: `Successfully deleted ${deletedUsers.length} users permanently!`,
-          error: "Failed to delete some users",
-        }
-      );
-    }
-  }, [deletedUsers, hardDeleteUser]);
+
+  const handleBulkRestoreUsers =
+    useCallback(async () => {
+      if (deletedUsers.length === 0) {
+        toast.error("No users to restore");
+        return;
+      }
+
+      if (
+        window.confirm(
+          `Restore all ${deletedUsers.length} deleted users?`
+        )
+      ) {
+        await toast.promise(
+          Promise.all(
+            deletedUsers.map((u) =>
+              restoreUser(u._id)
+            )
+          ),
+          {
+            loading: `Restoring ${deletedUsers.length} users...`,
+            success: `Successfully restored ${deletedUsers.length} users!`,
+            error: "Failed to restore some users",
+          }
+        );
+      }
+    }, [deletedUsers, restoreUser]);
+
+  const handleEmptyUserTrash =
+    useCallback(async () => {
+      if (deletedUsers.length === 0) {
+        toast.error("Trash is already empty");
+        return;
+      }
+
+      if (
+        window.confirm(
+          `⚠️ Permanently delete all ${deletedUsers.length} users? This cannot be undone!`
+        )
+      ) {
+        await toast.promise(
+          Promise.all(
+            deletedUsers.map((u) =>
+              hardDeleteUser(u._id)
+            )
+          ),
+          {
+            loading: `Emptying trash (${deletedUsers.length} users)...`,
+            success: `Successfully deleted ${deletedUsers.length} users permanently!`,
+            error: "Failed to delete some users",
+          }
+        );
+      }
+    }, [deletedUsers, hardDeleteUser]);
 
   // Garage handlers
-  const handleRestoreGarageFromTrash = useCallback(
-    async (garageId: string) => {
-      await toast.promise(restoreGarage(garageId), {
-        loading: "Restoring garage...",
-        success: "Garage restored successfully!",
-        error: "Failed to restore garage",
-      });
-    },
-    [restoreGarage]
-  );
+  const handleRestoreGarageFromTrash =
+    useCallback(
+      async (garageId: string) => {
+        await toast.promise(
+          restoreGarage(garageId),
+          {
+            loading: "Restoring garage...",
+            success:
+              "Garage restored successfully!",
+            error: "Failed to restore garage",
+          }
+        );
+      },
+      [restoreGarage]
+    );
 
   const handlePermanentDeleteGarage = useCallback(
     async (garageId: string) => {
@@ -308,69 +399,96 @@ export default function AdminDashboardPage() {
           "⚠️ Are you sure? This action is permanent and cannot be undone!"
         )
       ) {
-        await toast.promise(hardDeleteGarage(garageId), {
-          loading: "Deleting garage permanently...",
-          success: "Garage permanently deleted!",
-          error: "Failed to delete garage",
-        });
+        await toast.promise(
+          hardDeleteGarage(garageId),
+          {
+            loading:
+              "Deleting garage permanently...",
+            success:
+              "Garage permanently deleted!",
+            error: "Failed to delete garage",
+          }
+        );
       }
     },
     [hardDeleteGarage]
   );
 
-  const handleBulkRestoreGarages = useCallback(async () => {
-    if (deletedGarages.length === 0) {
-      toast.error("No garages to restore");
-      return;
-    }
+  const handleBulkRestoreGarages =
+    useCallback(async () => {
+      if (deletedGarages.length === 0) {
+        toast.error("No garages to restore");
+        return;
+      }
 
-    if (
-      window.confirm(
-        `Restore all ${deletedGarages.length} deleted garages?`
-      )
-    ) {
-      await toast.promise(
-        Promise.all(deletedGarages.map((g) => restoreGarage(g._id))),
-        {
-          loading: `Restoring ${deletedGarages.length} garages...`,
-          success: `Successfully restored ${deletedGarages.length} garages!`,
-          error: "Failed to restore some garages",
-        }
-      );
-    }
-  }, [deletedGarages, restoreGarage]);
+      if (
+        window.confirm(
+          `Restore all ${deletedGarages.length} deleted garages?`
+        )
+      ) {
+        await toast.promise(
+          Promise.all(
+            deletedGarages.map((g) =>
+              restoreGarage(g._id)
+            )
+          ),
+          {
+            loading: `Restoring ${deletedGarages.length} garages...`,
+            success: `Successfully restored ${deletedGarages.length} garages!`,
+            error:
+              "Failed to restore some garages",
+          }
+        );
+      }
+    }, [deletedGarages, restoreGarage]);
 
-  const handleEmptyGarageTrash = useCallback(async () => {
-    if (deletedGarages.length === 0) {
-      toast.error("Trash is already empty");
-      return;
-    }
+  const handleEmptyGarageTrash =
+    useCallback(async () => {
+      if (deletedGarages.length === 0) {
+        toast.error("Trash is already empty");
+        return;
+      }
 
-    if (
-      window.confirm(
-        `⚠️ Permanently delete all ${deletedGarages.length} garages? This cannot be undone!`
-      )
-    ) {
-      await toast.promise(
-        Promise.all(deletedGarages.map((g) => hardDeleteGarage(g._id))),
-        {
-          loading: `Emptying trash (${deletedGarages.length} garages)...`,
-          success: `Successfully deleted ${deletedGarages.length} garages permanently!`,
-          error: "Failed to delete some garages",
-        }
-      );
-    }
-  }, [deletedGarages, hardDeleteGarage]);
+      if (
+        window.confirm(
+          `⚠️ Permanently delete all ${deletedGarages.length} garages? This cannot be undone!`
+        )
+      ) {
+        await toast.promise(
+          Promise.all(
+            deletedGarages.map((g) =>
+              hardDeleteGarage(g._id)
+            )
+          ),
+          {
+            loading: `Emptying trash (${deletedGarages.length} garages)...`,
+            success: `Successfully deleted ${deletedGarages.length} garages permanently!`,
+            error:
+              "Failed to delete some garages",
+          }
+        );
+      }
+    }, [deletedGarages, hardDeleteGarage]);
 
   // Export handlers
   const handleExportUserData = useCallback(() => {
-    const data = userView === "active" ? users : deletedUsers;
+    const data =
+      userView === "active"
+        ? users
+        : deletedUsers;
     if (data.length === 0) {
       toast.error("No data to export");
       return;
     }
 
-    const headers = ["Name", "Email", "Role", "Phone", "Can Create Garage", "Joined"];
+    const headers = [
+      "Name",
+      "Email",
+      "Role",
+      "Phone",
+      "Can Create Garage",
+      "Joined",
+    ];
     const rows = data.map((obj) =>
       [
         `"${obj.name || ""}"`,
@@ -378,12 +496,18 @@ export default function AdminDashboardPage() {
         obj.role || "",
         obj.phone || "",
         obj.canCreateGarage ? "Yes" : "No",
-        new Date(obj.createdAt).toLocaleDateString(),
+        new Date(
+          obj.createdAt
+        ).toLocaleDateString(),
       ].join(",")
     );
 
-    const csv = [headers.join(","), ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const csv = [headers.join(","), ...rows].join(
+      "\n"
+    );
+    const blob = new Blob([csv], {
+      type: "text/csv;charset=utf-8;",
+    });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -393,74 +517,127 @@ export default function AdminDashboardPage() {
     toast.success("Data exported successfully!");
   }, [users, deletedUsers, userView]);
 
-  const handleExportGarageData = useCallback(() => {
-    const data = garageView === "active" ? garages : deletedGarages;
-    if (data.length === 0) {
-      toast.error("No data to export");
-      return;
-    }
+  const handleExportGarageData =
+    useCallback(() => {
+      const data =
+        garageView === "active"
+          ? garages
+          : deletedGarages;
+      if (data.length === 0) {
+        toast.error("No data to export");
+        return;
+      }
 
-    const headers = ["Name", "Address", "Owner", "Phone", "Status", "Created"];
-    const rows = data.map((obj) =>
-      [
-        `"${obj.name || ""}"`,
-        `"${obj.address?.street || ""}"`,
-        `"${obj.owner?.name || obj.ownerId || ""}"`,
-        obj.contactInfo?.phone || "",
-        obj.isDeleted ? "Deleted" : "Active",
-        new Date(obj.createdAt).toLocaleDateString(),
-      ].join(",")
-    );
+      const headers = [
+        "Name",
+        "Address",
+        "Owner",
+        "Phone",
+        "Status",
+        "Created",
+      ];
+      const rows = data.map((obj) =>
+        [
+          `"${obj.name || ""}"`,
+          `"${obj.address?.street || ""}"`,
+          `"${obj.owner?.name || obj.ownerId || ""}"`,
+          obj.contactInfo?.phone || "",
+          obj.isDeleted ? "Deleted" : "Active",
+          new Date(
+            obj.createdAt
+          ).toLocaleDateString(),
+        ].join(",")
+      );
 
-    const csv = [headers.join(","), ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `garages-${garageView}-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-    toast.success("Garage data exported successfully!");
-  }, [garages, deletedGarages, garageView]);
+      const csv = [
+        headers.join(","),
+        ...rows,
+      ].join("\n");
+      const blob = new Blob([csv], {
+        type: "text/csv;charset=utf-8;",
+      });
+      const url =
+        window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `garages-${garageView}-${new Date().toISOString().split("T")[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success(
+        "Garage data exported successfully!"
+      );
+    }, [garages, deletedGarages, garageView]);
 
   // Payment handlers
   const handleVerifyPayment = useCallback(
     async (paymentId: string) => {
-      await toast.promise(verifyPayment(paymentId), {
-        loading: "Verifying payment...",
-        success: "Payment verified successfully!",
-        error: "Failed to verify payment",
+      await toast.promise(
+        verifyPayment(paymentId),
+        {
+          loading: "Verifying payment...",
+          success:
+            "Payment verified successfully!",
+          error: "Failed to verify payment",
+        }
+      );
+      await fetchPayments({
+        page: paymentPage,
+        limit: paymentLimit,
       });
-      await fetchPayments({ page: paymentPage, limit: paymentLimit });
     },
-    [verifyPayment, fetchPayments, paymentPage, paymentLimit]
+    [
+      verifyPayment,
+      fetchPayments,
+      paymentPage,
+      paymentLimit,
+    ]
   );
 
   const handleRefundPayment = useCallback(
     async (paymentId: string) => {
       if (
-        window.confirm("Are you sure you want to refund this payment?")
+        window.confirm(
+          "Are you sure you want to refund this payment?"
+        )
       ) {
         const refundData: RefundPaymentRequest = {
           reason: "Admin initiated refund",
           refundedBy: user?._id || "system",
         };
 
-        await toast.promise(refundPayment(paymentId, refundData), {
-          loading: "Processing refund...",
-          success: "Payment refunded successfully!",
-          error: "Failed to refund payment",
+        await toast.promise(
+          refundPayment(paymentId, refundData),
+          {
+            loading: "Processing refund...",
+            success:
+              "Payment refunded successfully!",
+            error: "Failed to refund payment",
+          }
+        );
+        await fetchPayments({
+          page: paymentPage,
+          limit: paymentLimit,
         });
-        await fetchPayments({ page: paymentPage, limit: paymentLimit });
       }
     },
-    [refundPayment, fetchPayments, paymentPage, paymentLimit, user]
+    [
+      refundPayment,
+      fetchPayments,
+      paymentPage,
+      paymentLimit,
+      user,
+    ]
   );
 
-  const handleViewPaymentDetails = useCallback((payment: Payment) => {
-    toast.success(`Viewing payment ${payment.transactionId || payment._id}`);
-    console.log("Payment details:", payment);
-  }, []);
+  const handleViewPaymentDetails = useCallback(
+    (payment: Payment) => {
+      toast.success(
+        `Viewing payment ${payment.transactionId || payment._id}`
+      );
+      console.log("Payment details:", payment);
+    },
+    []
+  );
 
   // Refresh handler
   const handleRefresh = useCallback(() => {
@@ -472,19 +649,23 @@ export default function AdminDashboardPage() {
       }
     } else if (activeTab === "garages") {
       if (garageView === "active") {
-        fetchGarages({ page: 1, limit: DEFAULT_PAGE_LIMIT });
+        fetchGarages({
+          page: 1,
+          limit: DEFAULT_PAGE_LIMIT,
+        });
       } else {
         fetchDeletedGarages();
       }
     } else if (activeTab === "payments") {
-      fetchPayments({ page: paymentPage, limit: paymentLimit });
+      fetchPayments({
+        page: paymentPage,
+        limit: paymentLimit,
+      });
       fetchStatistics("month");
     } else if (activeTab === "overview") {
       Promise.allSettled([
-        fetchUserStats(),
         fetchUsers(1, 5),
         fetchGarages({ page: 1, limit: 5 }),
-        fetchGarageStats(),
         fetchPayments({ page: 1, limit: 5 }),
         fetchStatistics("month"),
       ]);
@@ -497,10 +678,8 @@ export default function AdminDashboardPage() {
     paymentLimit,
     fetchUsers,
     fetchDeletedUsers,
-    fetchUserStats,
     fetchGarages,
     fetchDeletedGarages,
-    fetchGarageStats,
     fetchPayments,
     fetchStatistics,
   ]);
@@ -508,7 +687,8 @@ export default function AdminDashboardPage() {
   // Pagination handlers
   const handleUserPageChange = useCallback(
     (newPage: number) => {
-      const limit = pagination?.limit || DEFAULT_PAGE_LIMIT;
+      const limit =
+        pagination?.limit || DEFAULT_PAGE_LIMIT;
       fetchUsers(newPage, limit);
     },
     [fetchUsers, pagination]
@@ -516,46 +696,81 @@ export default function AdminDashboardPage() {
 
   const handleGaragePageChange = useCallback(
     (newPage: number) => {
-      const limit = garagePagination?.limit || DEFAULT_PAGE_LIMIT;
+      const limit =
+        garagePagination?.limit ||
+        DEFAULT_PAGE_LIMIT;
       fetchGarages({ page: newPage, limit });
     },
     [fetchGarages, garagePagination]
   );
 
-  const handlePaymentPageChange = useCallback((newPage: number) => {
-    setPaymentPage(newPage);
-  }, []);
+  const handlePaymentPageChange = useCallback(
+    (newPage: number) => {
+      setPaymentPage(newPage);
+    },
+    []
+  );
 
   // Filtered data
   const filteredUsers = useMemo(() => {
-    const sourceUsers = userView === "active" ? users : deletedUsers;
+    const sourceUsers =
+      userView === "active"
+        ? users
+        : deletedUsers;
     if (!searchTerm.trim()) return sourceUsers;
 
     return sourceUsers.filter(
       (user) =>
-        user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+        user.name
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        user.email
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase())
     );
   }, [users, deletedUsers, userView, searchTerm]);
 
   const filteredGarages = useMemo(() => {
-    const sourceGarages = garageView === "active" ? garages || [] : deletedGarages || [];
-    if (!garageSearchTerm.trim()) return sourceGarages;
+    const sourceGarages =
+      garageView === "active"
+        ? garages || []
+        : deletedGarages || [];
+    if (!garageSearchTerm.trim())
+      return sourceGarages;
 
     return sourceGarages.filter(
       (garage) =>
-        garage.name?.toLowerCase().includes(garageSearchTerm.toLowerCase()) ||
-        garage.address?.street?.toLowerCase().includes(garageSearchTerm.toLowerCase()) ||
-        garage.owner?.name?.toLowerCase().includes(garageSearchTerm.toLowerCase())
+        garage.name
+          ?.toLowerCase()
+          .includes(
+            garageSearchTerm.toLowerCase()
+          ) ||
+        garage.address?.street
+          ?.toLowerCase()
+          .includes(
+            garageSearchTerm.toLowerCase()
+          ) ||
+        garage.owner?.name
+          ?.toLowerCase()
+          .includes(
+            garageSearchTerm.toLowerCase()
+          )
     );
-  }, [garages, deletedGarages, garageView, garageSearchTerm]);
+  }, [
+    garages,
+    deletedGarages,
+    garageView,
+    garageSearchTerm,
+  ]);
 
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading dashboard...</p>
+          <p className="text-gray-600">
+            Loading dashboard...
+          </p>
         </div>
       </div>
     );
@@ -579,6 +794,12 @@ export default function AdminDashboardPage() {
       label: "Garages",
       key: "garages",
       color: "green",
+    },
+    {
+      icon: HiOutlineWrench,
+      label: "Services",
+      key: "services",
+      color: "orange",
     },
     {
       icon: HiOutlineClipboardDocumentList,
@@ -606,17 +827,50 @@ export default function AdminDashboardPage() {
     },
   ];
 
-  const getColorClasses = (color: string, isActive: boolean) => {
-    const colorMap: Record<string, { bg: string; text: string; hover: string }> = {
-      indigo: { bg: "bg-indigo-50", text: "text-indigo-600", hover: "hover:bg-indigo-50" },
-      blue: { bg: "bg-blue-50", text: "text-blue-600", hover: "hover:bg-blue-50" },
-      green: { bg: "bg-green-50", text: "text-green-600", hover: "hover:bg-green-50" },
-      purple: { bg: "bg-purple-50", text: "text-purple-600", hover: "hover:bg-purple-50" },
-      pink: { bg: "bg-pink-50", text: "text-pink-600", hover: "hover:bg-pink-50" },
-      yellow: { bg: "bg-yellow-50", text: "text-yellow-600", hover: "hover:bg-yellow-50" },
-      gray: { bg: "bg-gray-50", text: "text-gray-600", hover: "hover:bg-gray-50" },
+  const getColorClasses = (
+    color: string,
+    isActive: boolean
+  ) => {
+    const colorMap: Record<
+      string,
+      { bg: string; text: string; hover: string }
+    > = {
+      indigo: {
+        bg: "bg-indigo-50",
+        text: "text-indigo-600",
+        hover: "hover:bg-indigo-50",
+      },
+      blue: {
+        bg: "bg-blue-50",
+        text: "text-blue-600",
+        hover: "hover:bg-blue-50",
+      },
+      green: {
+        bg: "bg-green-50",
+        text: "text-green-600",
+        hover: "hover:bg-green-50",
+      },
+      purple: {
+        bg: "bg-purple-50",
+        text: "text-purple-600",
+        hover: "hover:bg-purple-50",
+      },
+      pink: {
+        bg: "bg-pink-50",
+        text: "text-pink-600",
+        hover: "hover:bg-pink-50",
+      },
+      yellow: {
+        bg: "bg-yellow-50",
+        text: "text-yellow-600",
+        hover: "hover:bg-yellow-50",
+      },
+      gray: {
+        bg: "bg-gray-50",
+        text: "text-gray-600",
+        hover: "hover:bg-gray-50",
+      },
     };
-
     return colorMap[color] || colorMap.gray;
   };
 
@@ -656,31 +910,46 @@ export default function AdminDashboardPage() {
             transition={{ duration: 0.3 }}
           >
             <h1 className="text-2xl font-bold text-gray-800">
-              Admin <span className="text-indigo-600">Dashboard</span>
+              Admin{" "}
+              <span className="text-indigo-600">
+                Dashboard
+              </span>
             </h1>
-            <p className="text-sm text-gray-500 mt-1">Manage your platform</p>
+            <p className="text-sm text-gray-500 mt-1">
+              Manage your platform
+            </p>
           </motion.div>
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
           {menuItems.map((item) => {
-            const isActive = activeTab === item.key;
-            const colors = getColorClasses(item.color, isActive);
+            const isActive =
+              activeTab === item.key;
+            const colors = getColorClasses(
+              item.color,
+              isActive
+            );
 
             return (
               <motion.button
                 key={item.key}
                 whileHover={{ x: 5 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setActiveTab(item.key)}
+                onClick={() =>
+                  setActiveTab(item.key)
+                }
                 className={`flex items-center gap-3 w-full px-4 py-3 text-left text-sm font-medium rounded-lg transition-all ${
                   isActive
                     ? `${colors.bg} ${colors.text} shadow-md`
                     : "text-gray-600 hover:bg-gray-50"
                 }`}
               >
-                <item.icon className={`w-5 h-5 ${isActive ? colors.text : ""}`} />
-                <span className="flex-1">{item.label}</span>
+                <item.icon
+                  className={`w-5 h-5 ${isActive ? colors.text : ""}`}
+                />
+                <span className="flex-1">
+                  {item.label}
+                </span>
                 {item.key === "users" && (
                   <span className="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full text-xs">
                     {localStats.activeUsers}
@@ -688,7 +957,9 @@ export default function AdminDashboardPage() {
                 )}
                 {item.key === "garages" && (
                   <span className="bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-xs">
-                    {garageLocalStats.activeGarages}
+                    {
+                      garageLocalStats.activeGarages
+                    }
                   </span>
                 )}
                 {item.key === "payments" && (
@@ -715,7 +986,9 @@ export default function AdminDashboardPage() {
               <p className="text-sm font-medium text-gray-700 truncate">
                 {user.name}
               </p>
-              <p className="text-xs text-gray-500 truncate">Administrator</p>
+              <p className="text-xs text-gray-500 truncate">
+                Administrator
+              </p>
             </div>
           </motion.div>
           <motion.button
@@ -724,7 +997,8 @@ export default function AdminDashboardPage() {
             onClick={logout}
             className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
           >
-            <HiOutlineLogout className="w-5 h-5" /> Logout
+            <HiOutlineLogout className="w-5 h-5" />{" "}
+            Logout
           </motion.button>
         </div>
       </aside>
@@ -734,7 +1008,9 @@ export default function AdminDashboardPage() {
         {/* Header with Refresh */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-800">
-            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Management
+            {activeTab.charAt(0).toUpperCase() +
+              activeTab.slice(1)}{" "}
+            Management
           </h1>
           <motion.button
             whileHover={{ rotate: 180 }}
@@ -757,7 +1033,8 @@ export default function AdminDashboardPage() {
               transition={{ duration: 0.3 }}
             >
               <p className="text-gray-500 mb-8">
-                Welcome back, {user.name}! Here&apos;s an overview of your
+                Welcome back, {user.name}!
+                Here&apos;s an overview of your
                 platform&apos;s activity.
               </p>
 
@@ -773,7 +1050,8 @@ export default function AdminDashboardPage() {
                   },
                   {
                     label: "Total Garages",
-                    value: garageLocalStats.totalGarages,
+                    value:
+                      garageLocalStats.totalGarages,
                     icon: HiOutlineBuildingOffice,
                     color: "green",
                     subtext: `${garageLocalStats.activeGarages} active, ${garageLocalStats.deletedGarages} deleted`,
@@ -787,7 +1065,11 @@ export default function AdminDashboardPage() {
                   },
                   {
                     label: "Pending Actions",
-                    value: pendingPayments.length + (deletedUsers.length > 0 ? 1 : 0),
+                    value:
+                      pendingPayments.length +
+                      (deletedUsers.length > 0
+                        ? 1
+                        : 0),
                     icon: HiOutlineClock,
                     color: "orange",
                     subtext: `${pendingPayments.length} payments pending`,
@@ -795,25 +1077,39 @@ export default function AdminDashboardPage() {
                 ].map((stat, index) => (
                   <motion.div
                     key={stat.label}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{
+                      opacity: 0,
+                      y: 20,
+                    }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
+                    transition={{
+                      delay: index * 0.1,
+                    }}
                     whileHover={{
                       scale: 1.02,
-                      boxShadow: "0 10px 30px -10px rgba(0,0,0,0.1)",
+                      boxShadow:
+                        "0 10px 30px -10px rgba(0,0,0,0.1)",
                     }}
                     className="bg-white p-6 rounded-xl shadow-sm border border-gray-100"
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-gray-500">{stat.label}</p>
+                        <p className="text-sm text-gray-500">
+                          {stat.label}
+                        </p>
                         <p className="text-2xl font-bold text-gray-800">
                           {stat.value}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">{stat.subtext}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {stat.subtext}
+                        </p>
                       </div>
-                      <div className={`p-3 bg-${stat.color}-100 rounded-lg`}>
-                        <stat.icon className={`w-6 h-6 text-${stat.color}-600`} />
+                      <div
+                        className={`p-3 bg-${stat.color}-100 rounded-lg`}
+                      >
+                        <stat.icon
+                          className={`w-6 h-6 text-${stat.color}-600`}
+                        />
                       </div>
                     </div>
                   </motion.div>
@@ -821,49 +1117,63 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Recent Users */}
-              {localStats.recentUsers && localStats.recentUsers.length > 0 && (
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                    Recent Users
-                  </h3>
-                  <div className="space-y-3">
-                    {localStats.recentUsers.map((user) => (
-                      <div
-                        key={user._id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                            <span className="text-sm font-semibold text-indigo-600">
-                              {user.name.charAt(0)}
-                            </span>
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm truncate">{user.name}</p>
-                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              user.role === "garage_owner"
-                                ? "bg-purple-100 text-purple-800"
-                                : "bg-blue-100 text-blue-800"
-                            }`}
+              {localStats.recentUsers &&
+                localStats.recentUsers.length >
+                  0 && (
+                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                      Recent Users
+                    </h3>
+                    <div className="space-y-3">
+                      {localStats.recentUsers.map(
+                        (user) => (
+                          <div
+                            key={user._id}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                           >
-                            {user.role === "garage_owner" ? "Garage Owner" : "Car Owner"}
-                          </span>
-                          {user.canCreateGarage && (
-                            <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                              Can Create
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                <span className="text-sm font-semibold text-indigo-600">
+                                  {user.name.charAt(
+                                    0
+                                  )}
+                                </span>
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-medium text-sm truncate">
+                                  {user.name}
+                                </p>
+                                <p className="text-xs text-gray-500 truncate">
+                                  {user.email}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  user.role ===
+                                  "garage_owner"
+                                    ? "bg-purple-100 text-purple-800"
+                                    : "bg-blue-100 text-blue-800"
+                                }`}
+                              >
+                                {user.role ===
+                                "garage_owner"
+                                  ? "Garage Owner"
+                                  : "Car Owner"}
+                              </span>
+                              {user.canCreateGarage && (
+                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                                  Can Create
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Recent Garages */}
               {garages && garages.length > 0 && (
@@ -873,63 +1183,86 @@ export default function AdminDashboardPage() {
                       Recent Garages
                     </h3>
                     <button
-                      onClick={() => setActiveTab("garages")}
+                      onClick={() =>
+                        setActiveTab("garages")
+                      }
                       className="text-sm text-indigo-600 hover:text-indigo-800"
                     >
                       View All →
                     </button>
                   </div>
                   <div className="space-y-3">
-                    {garages.slice(0, 5).map((garage) => (
-                      <div
-                        key={garage._id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineBuildingOffice className="w-4 h-4 text-green-600" />
+                    {garages
+                      .slice(0, 5)
+                      .map((garage) => (
+                        <div
+                          key={garage._id}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                              <HiOutlineBuildingOffice className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">
+                                {garage.name}
+                              </p>
+                              <p className="text-xs text-gray-500 truncate">
+                                {garage.address
+                                  ?.street ||
+                                  "No address"}{" "}
+                                • Owner:{" "}
+                                {garage.owner
+                                  ?.name ||
+                                  "Unknown"}
+                              </p>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm truncate">{garage.name}</p>
-                            <p className="text-xs text-gray-500 truncate">
-                              {garage.address?.street || "No address"} • 
-                              Owner: {garage.owner?.name || "Unknown"}
-                            </p>
-                          </div>
+                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs flex-shrink-0">
+                            Active
+                          </span>
                         </div>
-                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs flex-shrink-0">
-                          Active
-                        </span>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 </div>
               )}
 
               {/* Recent Payments */}
-              {payments && payments.length > 0 && (
-                <div className="mt-8">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      Recent Payments
-                    </h3>
-                    <button
-                      onClick={() => setActiveTab("payments")}
-                      className="text-sm text-indigo-600 hover:text-indigo-800"
-                    >
-                      View All →
-                    </button>
+              {payments &&
+                payments.length > 0 && (
+                  <div className="mt-8">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        Recent Payments
+                      </h3>
+                      <button
+                        onClick={() =>
+                          setActiveTab("payments")
+                        }
+                        className="text-sm text-indigo-600 hover:text-indigo-800"
+                      >
+                        View All →
+                      </button>
+                    </div>
+                    <PaymentTable
+                      payments={payments.slice(
+                        0,
+                        5
+                      )}
+                      loading={paymentsLoading}
+                      error={paymentsError}
+                      onViewDetails={
+                        handleViewPaymentDetails
+                      }
+                      onVerify={
+                        handleVerifyPayment
+                      }
+                      onRefund={
+                        handleRefundPayment
+                      }
+                    />
                   </div>
-                  <PaymentTable
-                    payments={payments.slice(0, 5)}
-                    loading={paymentsLoading}
-                    error={paymentsError}
-                    onViewDetails={handleViewPaymentDetails}
-                    onVerify={handleVerifyPayment}
-                    onRefund={handleRefundPayment}
-                  />
-                </div>
-              )}
+                )}
             </motion.div>
           )}
 
@@ -942,14 +1275,18 @@ export default function AdminDashboardPage() {
               transition={{ duration: 0.3 }}
             >
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">User Management</h2>
+                <h2 className="text-2xl font-bold text-gray-800">
+                  User Management
+                </h2>
 
                 {/* View Toggle */}
                 <div className="flex gap-2 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setUserView("active")}
+                    onClick={() =>
+                      setUserView("active")
+                    }
                     className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       userView === "active"
                         ? "bg-indigo-600 text-white"
@@ -962,7 +1299,9 @@ export default function AdminDashboardPage() {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setUserView("deleted")}
+                    onClick={() =>
+                      setUserView("deleted")
+                    }
                     className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       userView === "deleted"
                         ? "bg-red-600 text-white"
@@ -983,7 +1322,11 @@ export default function AdminDashboardPage() {
                     type="text"
                     placeholder={`Search ${userView} users by name or email...`}
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) =>
+                      setSearchTerm(
+                        e.target.value
+                      )
+                    }
                     className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
@@ -997,7 +1340,9 @@ export default function AdminDashboardPage() {
                     title="Refresh"
                   >
                     <HiOutlineRefresh className="w-4 h-4" />
-                    <span className="hidden sm:inline">Refresh</span>
+                    <span className="hidden sm:inline">
+                      Refresh
+                    </span>
                   </motion.button>
 
                   <motion.button
@@ -1008,34 +1353,53 @@ export default function AdminDashboardPage() {
                     title="Export to CSV"
                   >
                     <HiOutlineDownload className="w-4 h-4" />
-                    <span className="hidden sm:inline">Export</span>
+                    <span className="hidden sm:inline">
+                      Export
+                    </span>
                   </motion.button>
 
-                  {userView === "deleted" && deletedUsers.length > 0 && (
-                    <>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleBulkRestoreUsers}
-                        className="flex items-center gap-2 px-4 py-2 text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100"
-                        title="Restore all"
-                      >
-                        <HiOutlineRefresh className="w-4 h-4" />
-                        <span className="hidden sm:inline">Restore All</span>
-                      </motion.button>
+                  {userView === "deleted" &&
+                    deletedUsers.length > 0 && (
+                      <>
+                        <motion.button
+                          whileHover={{
+                            scale: 1.02,
+                          }}
+                          whileTap={{
+                            scale: 0.98,
+                          }}
+                          onClick={
+                            handleBulkRestoreUsers
+                          }
+                          className="flex items-center gap-2 px-4 py-2 text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100"
+                          title="Restore all"
+                        >
+                          <HiOutlineRefresh className="w-4 h-4" />
+                          <span className="hidden sm:inline">
+                            Restore All
+                          </span>
+                        </motion.button>
 
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleEmptyUserTrash}
-                        className="flex items-center gap-2 px-4 py-2 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100"
-                        title="Empty trash"
-                      >
-                        <HiOutlineTrash className="w-4 h-4" />
-                        <span className="hidden sm:inline">Empty Trash</span>
-                      </motion.button>
-                    </>
-                  )}
+                        <motion.button
+                          whileHover={{
+                            scale: 1.02,
+                          }}
+                          whileTap={{
+                            scale: 0.98,
+                          }}
+                          onClick={
+                            handleEmptyUserTrash
+                          }
+                          className="flex items-center gap-2 px-4 py-2 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100"
+                          title="Empty trash"
+                        >
+                          <HiOutlineTrash className="w-4 h-4" />
+                          <span className="hidden sm:inline">
+                            Empty Trash
+                          </span>
+                        </motion.button>
+                      </>
+                    )}
                 </div>
               </div>
 
@@ -1044,44 +1408,78 @@ export default function AdminDashboardPage() {
                 users={filteredUsers}
                 loading={usersLoading}
                 error={usersError}
-                showDeleted={userView === "deleted"}
-                onRestore={handleRestoreUserFromTrash}
-                onPermanentDelete={handlePermanentDeleteUser}
+                showDeleted={
+                  userView === "deleted"
+                }
+                onRestore={
+                  handleRestoreUserFromTrash
+                }
+                onPermanentDelete={
+                  handlePermanentDeleteUser
+                }
               />
 
               {/* Pagination */}
-              {userView === "active" && pagination && pagination.pages > 1 && (
-                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-sm text-gray-500">
-                    Showing {(pagination.page - 1) * pagination.limit + 1} -{" "}
-                    {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-                    {pagination.total} users
-                  </p>
-                  <div className="flex gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleUserPageChange(pagination.page - 1)}
-                      disabled={pagination.page === 1}
-                      className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                    >
-                      Previous
-                    </motion.button>
-                    <span className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                      Page {pagination.page} of {pagination.pages}
-                    </span>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleUserPageChange(pagination.page + 1)}
-                      disabled={pagination.page === pagination.pages}
-                      className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                    >
-                      Next
-                    </motion.button>
+              {userView === "active" &&
+                pagination &&
+                pagination.pages > 1 && (
+                  <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p className="text-sm text-gray-500">
+                      Showing{" "}
+                      {(pagination.page - 1) *
+                        pagination.limit +
+                        1}{" "}
+                      -{" "}
+                      {Math.min(
+                        pagination.page *
+                          pagination.limit,
+                        pagination.total
+                      )}{" "}
+                      of {pagination.total} users
+                    </p>
+                    <div className="flex gap-2">
+                      <motion.button
+                        whileHover={{
+                          scale: 1.02,
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() =>
+                          handleUserPageChange(
+                            pagination.page - 1
+                          )
+                        }
+                        disabled={
+                          pagination.page === 1
+                        }
+                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        Previous
+                      </motion.button>
+                      <span className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                        Page {pagination.page} of{" "}
+                        {pagination.pages}
+                      </span>
+                      <motion.button
+                        whileHover={{
+                          scale: 1.02,
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() =>
+                          handleUserPageChange(
+                            pagination.page + 1
+                          )
+                        }
+                        disabled={
+                          pagination.page ===
+                          pagination.pages
+                        }
+                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        Next
+                      </motion.button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </motion.div>
           )}
 
@@ -1094,14 +1492,18 @@ export default function AdminDashboardPage() {
               transition={{ duration: 0.3 }}
             >
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Garage Management</h2>
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Garage Management
+                </h2>
 
                 {/* View Toggle */}
                 <div className="flex gap-2 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setGarageView("active")}
+                    onClick={() =>
+                      setGarageView("active")
+                    }
                     className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       garageView === "active"
                         ? "bg-green-600 text-white"
@@ -1109,12 +1511,15 @@ export default function AdminDashboardPage() {
                     }`}
                   >
                     <HiOutlineBuildingOffice className="w-4 h-4" />
-                    Active ({garages?.length || 0})
+                    Active ({garages?.length || 0}
+                    )
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setGarageView("deleted")}
+                    onClick={() =>
+                      setGarageView("deleted")
+                    }
                     className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       garageView === "deleted"
                         ? "bg-red-600 text-white"
@@ -1122,7 +1527,8 @@ export default function AdminDashboardPage() {
                     }`}
                   >
                     <HiOutlineTrash className="w-4 h-4" />
-                    Trash ({deletedGarages?.length || 0})
+                    Trash (
+                    {deletedGarages?.length || 0})
                   </motion.button>
                 </div>
               </div>
@@ -1135,7 +1541,11 @@ export default function AdminDashboardPage() {
                     type="text"
                     placeholder={`Search ${garageView} garages by name, address, or owner...`}
                     value={garageSearchTerm}
-                    onChange={(e) => setGarageSearchTerm(e.target.value)}
+                    onChange={(e) =>
+                      setGarageSearchTerm(
+                        e.target.value
+                      )
+                    }
                     className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
@@ -1149,45 +1559,69 @@ export default function AdminDashboardPage() {
                     title="Refresh"
                   >
                     <HiOutlineRefresh className="w-4 h-4" />
-                    <span className="hidden sm:inline">Refresh</span>
+                    <span className="hidden sm:inline">
+                      Refresh
+                    </span>
                   </motion.button>
 
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={handleExportGarageData}
+                    onClick={
+                      handleExportGarageData
+                    }
                     className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
                     title="Export to CSV"
                   >
                     <HiOutlineDownload className="w-4 h-4" />
-                    <span className="hidden sm:inline">Export</span>
+                    <span className="hidden sm:inline">
+                      Export
+                    </span>
                   </motion.button>
 
-                  {garageView === "deleted" && deletedGarages?.length > 0 && (
-                    <>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleBulkRestoreGarages}
-                        className="flex items-center gap-2 px-4 py-2 text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100"
-                        title="Restore all"
-                      >
-                        <HiOutlineRefresh className="w-4 h-4" />
-                        <span className="hidden sm:inline">Restore All</span>
-                      </motion.button>
+                  {garageView === "deleted" &&
+                    deletedGarages?.length >
+                      0 && (
+                      <>
+                        <motion.button
+                          whileHover={{
+                            scale: 1.02,
+                          }}
+                          whileTap={{
+                            scale: 0.98,
+                          }}
+                          onClick={
+                            handleBulkRestoreGarages
+                          }
+                          className="flex items-center gap-2 px-4 py-2 text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100"
+                          title="Restore all"
+                        >
+                          <HiOutlineRefresh className="w-4 h-4" />
+                          <span className="hidden sm:inline">
+                            Restore All
+                          </span>
+                        </motion.button>
 
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleEmptyGarageTrash}
-                        className="flex items-center gap-2 px-4 py-2 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100"
-                        title="Empty trash"
-                      >
-                        <HiOutlineTrash className="w-4 h-4" />
-                        <span className="hidden sm:inline">Empty Trash</span>
-                      </motion.button>
-                    </>
-                  )}
+                        <motion.button
+                          whileHover={{
+                            scale: 1.02,
+                          }}
+                          whileTap={{
+                            scale: 0.98,
+                          }}
+                          onClick={
+                            handleEmptyGarageTrash
+                          }
+                          className="flex items-center gap-2 px-4 py-2 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100"
+                          title="Empty trash"
+                        >
+                          <HiOutlineTrash className="w-4 h-4" />
+                          <span className="hidden sm:inline">
+                            Empty Trash
+                          </span>
+                        </motion.button>
+                      </>
+                    )}
                 </div>
               </div>
 
@@ -1196,48 +1630,96 @@ export default function AdminDashboardPage() {
                 garages={filteredGarages}
                 loading={garagesLoading}
                 error={garagesError}
-                showDeleted={garageView === "deleted"}
-                onRestore={handleRestoreGarageFromTrash}
-                onPermanentDelete={handlePermanentDeleteGarage}
+                showDeleted={
+                  garageView === "deleted"
+                }
+                showUnverified={showUnverified}
+                showComplete={showComplete}
+                onViewChange={handleViewChange}
+                onRestore={
+                  handleRestoreGarageFromTrash
+                }
+                onPermanentDelete={
+                  handlePermanentDeleteGarage
+                }
                 onViewDetails={(garage) => {
-                  toast.success(`Viewing garage: ${garage.name}`);
-                  console.log("Garage details:", garage);
+                  toast.success(
+                    `Viewing garage: ${garage.name}`
+                  );
+                  console.log(
+                    "Garage details:",
+                    garage
+                  );
                 }}
               />
 
               {/* Pagination */}
-              {garageView === "active" && garagePagination && garagePagination.pages > 1 && (
-                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-sm text-gray-500">
-                    Showing {(garagePagination.page - 1) * garagePagination.limit + 1} -{" "}
-                    {Math.min(garagePagination.page * garagePagination.limit, garagePagination.total)} of{" "}
-                    {garagePagination.total} garages
-                  </p>
-                  <div className="flex gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleGaragePageChange(garagePagination.page - 1)}
-                      disabled={garagePagination.page === 1}
-                      className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                    >
-                      Previous
-                    </motion.button>
-                    <span className="px-4 py-2 bg-green-50 text-green-600 rounded-lg">
-                      Page {garagePagination.page} of {garagePagination.pages}
-                    </span>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleGaragePageChange(garagePagination.page + 1)}
-                      disabled={garagePagination.page === garagePagination.pages}
-                      className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                    >
-                      Next
-                    </motion.button>
+              {garageView === "active" &&
+                garagePagination &&
+                garagePagination.pages > 1 && (
+                  <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p className="text-sm text-gray-500">
+                      Showing{" "}
+                      {(garagePagination.page -
+                        1) *
+                        garagePagination.limit +
+                        1}{" "}
+                      -{" "}
+                      {Math.min(
+                        garagePagination.page *
+                          garagePagination.limit,
+                        garagePagination.total
+                      )}{" "}
+                      of {garagePagination.total}{" "}
+                      garages
+                    </p>
+                    <div className="flex gap-2">
+                      <motion.button
+                        whileHover={{
+                          scale: 1.02,
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() =>
+                          handleGaragePageChange(
+                            garagePagination.page -
+                              1
+                          )
+                        }
+                        disabled={
+                          garagePagination.page ===
+                          1
+                        }
+                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        Previous
+                      </motion.button>
+                      <span className="px-4 py-2 bg-green-50 text-green-600 rounded-lg">
+                        Page{" "}
+                        {garagePagination.page} of{" "}
+                        {garagePagination.pages}
+                      </span>
+                      <motion.button
+                        whileHover={{
+                          scale: 1.02,
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() =>
+                          handleGaragePageChange(
+                            garagePagination.page +
+                              1
+                          )
+                        }
+                        disabled={
+                          garagePagination.page ===
+                          garagePagination.pages
+                        }
+                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        Next
+                      </motion.button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </motion.div>
           )}
 
@@ -1266,7 +1748,8 @@ export default function AdminDashboardPage() {
                   },
                   {
                     label: "Completed",
-                    value: completedPayments.length,
+                    value:
+                      completedPayments.length,
                     icon: HiOutlineCheckCircle,
                     color: "green",
                   },
@@ -1279,24 +1762,36 @@ export default function AdminDashboardPage() {
                 ].map((stat, index) => (
                   <motion.div
                     key={stat.label}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{
+                      opacity: 0,
+                      y: 20,
+                    }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
+                    transition={{
+                      delay: index * 0.1,
+                    }}
                     whileHover={{
                       scale: 1.02,
-                      boxShadow: "0 10px 30px -10px rgba(0,0,0,0.1)",
+                      boxShadow:
+                        "0 10px 30px -10px rgba(0,0,0,0.1)",
                     }}
                     className="bg-white p-6 rounded-xl shadow-sm border border-gray-100"
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-gray-500">{stat.label}</p>
+                        <p className="text-sm text-gray-500">
+                          {stat.label}
+                        </p>
                         <p className="text-2xl font-bold text-gray-800">
                           {stat.value}
                         </p>
                       </div>
-                      <div className={`p-3 bg-${stat.color}-100 rounded-lg`}>
-                        <stat.icon className={`w-6 h-6 text-${stat.color}-600`} />
+                      <div
+                        className={`p-3 bg-${stat.color}-100 rounded-lg`}
+                      >
+                        <stat.icon
+                          className={`w-6 h-6 text-${stat.color}-600`}
+                        />
                       </div>
                     </div>
                   </motion.div>
@@ -1308,63 +1803,174 @@ export default function AdminDashboardPage() {
                 payments={payments}
                 loading={paymentsLoading}
                 error={paymentsError}
-                onViewDetails={handleViewPaymentDetails}
+                onViewDetails={
+                  handleViewPaymentDetails
+                }
                 onVerify={handleVerifyPayment}
                 onRefund={handleRefundPayment}
               />
+
+              {/* Pagination */}
+              {paymentPagination &&
+                paymentPagination.pages > 1 && (
+                  <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p className="text-sm text-gray-500">
+                      Showing{" "}
+                      {(paymentPagination.page -
+                        1) *
+                        paymentPagination.limit +
+                        1}{" "}
+                      -{" "}
+                      {Math.min(
+                        paymentPagination.page *
+                          paymentPagination.limit,
+                        paymentPagination.total
+                      )}{" "}
+                      of {paymentPagination.total}{" "}
+                      payments
+                    </p>
+                    <div className="flex gap-2">
+                      <motion.button
+                        whileHover={{
+                          scale: 1.02,
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() =>
+                          handlePaymentPageChange(
+                            paymentPagination.page -
+                              1
+                          )
+                        }
+                        disabled={
+                          paymentPagination.page ===
+                          1
+                        }
+                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        Previous
+                      </motion.button>
+                      <span className="px-4 py-2 bg-pink-50 text-pink-600 rounded-lg">
+                        Page{" "}
+                        {paymentPagination.page}{" "}
+                        of{" "}
+                        {paymentPagination.pages}
+                      </span>
+                      <motion.button
+                        whileHover={{
+                          scale: 1.02,
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() =>
+                          handlePaymentPageChange(
+                            paymentPagination.page +
+                              1
+                          )
+                        }
+                        disabled={
+                          paymentPagination.page ===
+                          paymentPagination.pages
+                        }
+                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        Next
+                      </motion.button>
+                    </div>
+                  </div>
+                )}
             </motion.div>
           )}
 
           {/* Placeholder for other tabs */}
-          {activeTab !== "overview" &&
-            activeTab !== "users" &&
-            activeTab !== "garages" &&
-            activeTab !== "payments" && (
+          {(activeTab === "bookings" ||
+            activeTab === "services" ||
+            activeTab === "verifications" ||
+            activeTab === "settings") && (
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="bg-white p-12 rounded-xl shadow-sm border border-gray-200 text-center"
+            >
               <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="bg-white p-12 rounded-xl shadow-sm border border-gray-200 text-center"
+                animate={{
+                  scale: [1, 1.1, 1],
+                  rotate: [0, 5, -5, 0],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                }}
+                className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6"
               >
-                <motion.div
-                  animate={{
-                    scale: [1, 1.1, 1],
-                    rotate: [0, 5, -5, 0],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                  }}
-                  className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6"
-                >
-                  {activeTab === "bookings" && (
-                    <HiOutlineClipboardDocumentList className="w-12 h-12 text-gray-400" />
-                  )}
-                  {activeTab === "verifications" && (
-                    <HiOutlineShieldCheck className="w-12 h-12 text-gray-400" />
-                  )}
-                  {activeTab === "settings" && (
-                    <HiOutlineCog className="w-12 h-12 text-gray-400" />
-                  )}
-                </motion.div>
-                <h3 className="text-2xl font-semibold text-gray-700 mb-2 capitalize">
-                  {activeTab} Management
-                </h3>
-                <p className="text-gray-500 mb-6">
-                  This section is under construction. Check back soon!
-                </p>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setActiveTab("overview")}
-                  className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  Return to Overview
-                </motion.button>
+                
+                {activeTab === "bookings" && (
+  <BookingTable
+    bookings={bookings}
+    onEdit={(booking) => console.log("Edit", booking)}
+    onDelete={(id) => console.log("Delete", id)}
+  />
+)}
+
+
+                {activeTab === "services" && (
+                  <motion.div
+                    key="services"
+                    initial={{
+                      opacity: 0,
+                      y: 20,
+                    }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ServiceTable
+                      services={services}
+                      onEdit={(service) =>
+                        console.log(
+                          "Edit",
+                          service
+                        )
+                      }
+                      onDelete={(id) =>
+                        console.log("Delete", id)
+                      }
+                    />
+                  </motion.div>
+                )}
+
+                {activeTab ===
+                  "verifications" && (
+                  <HiOutlineShieldCheck className="w-12 h-12 text-gray-400" />
+                )}
+
+                {activeTab === "settings" && (
+                  <HiOutlineCog className="w-12 h-12 text-gray-400" />
+                )}
               </motion.div>
-            )}
+
+              <h3 className="text-2xl font-semibold text-gray-700 mb-2 capitalize">
+                {activeTab} Management
+              </h3>
+
+              <p className="text-gray-500 mb-6">
+                This section is under
+                construction. Check back soon!
+              </p>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() =>
+                  setActiveTab("overview")
+                }
+                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Return to Overview
+              </motion.button>
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
     </div>

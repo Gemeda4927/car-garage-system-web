@@ -1,8 +1,5 @@
 import { create } from "zustand";
-import {
-  persist,
-  createJSONStorage,
-} from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type { User } from "../types/auth.types";
 
 interface AuthState {
@@ -26,6 +23,9 @@ export const useAuthStore = create<AuthState>()(
           token,
           isAuthenticated: true,
         });
+        console.log(
+          `Auth store updated: user ${user.email} logged in (role: ${user.role}, token redacted)`
+        );
       },
 
       logout: () => {
@@ -34,13 +34,12 @@ export const useAuthStore = create<AuthState>()(
           token: null,
           isAuthenticated: false,
         });
+        console.log("Auth store cleared: user logged out");
       },
     }),
     {
       name: "auth-storage",
-      storage: createJSONStorage(
-        () => localStorage
-      ),
+      storage: createJSONStorage(() => localStorage),
     }
   )
 );

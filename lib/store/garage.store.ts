@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { garageService } from "../api/garage.api";
+import { CompleteGaragesData, garageService } from "../api/garage.api";
 import {
   CreateGaragePayload,
   UpdateGaragePayload,
@@ -16,7 +16,6 @@ import {
   ReviewsSummary,
   BookingsStats,
 } from "../types/garage.types";
-import { CompleteGaragesData } from "../api/garage.api";
 
 /* ============================ */
 interface ApiError {
@@ -41,7 +40,7 @@ interface GarageState {
   garageBookings: ServiceBooking[];
   garageAnalytics: GarageAnalyticsData | null;
 
-  // NEW: Complete data state
+  // Complete data state
   completeData: CompleteGaragesData | null;
 
   // Loading states
@@ -49,7 +48,7 @@ interface GarageState {
   error: string | null;
   actionLoading: Record<string, boolean>;
 
-  // Pagination
+  // Pagination & Stats
   pagination: {
     page: number;
     limit: number;
@@ -92,54 +91,19 @@ interface GarageState {
   categorySummary: CategorySummary[] | null;
 
   // Actions
-  fetchGarages: (params?: Record<string, unknown>) => Promise<void>;
+  fetchGarages: () => Promise<void>;
   fetchGarage: (id: string) => Promise<void>;
-  fetchNearbyGarages: (lat: number, lng: number, radius?: number) => Promise<void>;
-  fetchDeletedGarages: (params?: Record<string, unknown>) => Promise<void>;
-  fetchUnverifiedGarages: (params?: Record<string, unknown>) => Promise<void>;
-  
-  // NEW: Fetch complete data action
+  fetchNearbyGarages: (lat: number, lng: number, radius?: number, limit?: number) => Promise<void>;
+  fetchDeletedGarages: () => Promise<void>;
+  fetchUnverifiedGarages: () => Promise<void>;
+
+  // Fetch complete data action
   fetchCompleteData: () => Promise<CompleteGaragesData | null>;
-  
-  fetchGarageServices: (
-    garageId: string,
-    params?: {
-      category?: string;
-      isAvailable?: boolean;
-      page?: number;
-      limit?: number;
-    }
-  ) => Promise<void>;
 
-  fetchGarageReviews: (
-    garageId: string,
-    params?: {
-      rating?: number;
-      hasResponse?: boolean;
-      page?: number;
-      limit?: number;
-      sortBy?: string;
-      sortOrder?: "asc" | "desc";
-    }
-  ) => Promise<void>;
-
-  fetchGarageBookings: (
-    garageId: string,
-    params?: {
-      status?: string;
-      startDate?: string;
-      endDate?: string;
-      page?: number;
-      limit?: number;
-      sortBy?: string;
-      sortOrder?: "asc" | "desc";
-    }
-  ) => Promise<void>;
-
-  fetchGarageAnalytics: (
-    garageId: string,
-    params?: { period?: "week" | "month" | "quarter" | "year" }
-  ) => Promise<void>;
+  fetchGarageServices: (garageId: string) => Promise<void>;
+  fetchGarageReviews: (garageId: string) => Promise<void>;
+  fetchGarageBookings: (garageId: string) => Promise<void>;
+  fetchGarageAnalytics: (garageId: string, period?: "week" | "month" | "quarter" | "year") => Promise<void>;
 
   createGarage: (data: CreateGaragePayload) => Promise<PopulatedGarage | null>;
   updateGarage: (id: string, data: UpdateGaragePayload) => Promise<PopulatedGarage | null>;
@@ -173,7 +137,7 @@ export const useGarageStore = create<GarageState>((set, get) => ({
   garageBookings: [],
   garageAnalytics: null,
 
-  // NEW: Complete data initial state
+  // Complete data initial state
   completeData: null,
 
   loading: false,
@@ -192,11 +156,11 @@ export const useGarageStore = create<GarageState>((set, get) => ({
   categorySummary: null,
 
   /* ============================ */
-  fetchGarages: async (params) => {
+  fetchGarages: async () => {
     try {
       set({ loading: true, error: null });
 
-      const response = await garageService.getAll(params);
+      const response = await garageService.getAll();
 
       if (response.success) {
         set({
@@ -205,14 +169,13 @@ export const useGarageStore = create<GarageState>((set, get) => ({
           priceRange: response.data.priceRange,
           loading: false,
         });
+      } else {
+        set({ loading: false });
       }
     } catch (err) {
       const error = err as ApiError;
       set({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch garages",
+        error: error.response?.data?.message || error.message || "Failed to fetch garages",
         loading: false,
       });
     }
@@ -230,21 +193,20 @@ export const useGarageStore = create<GarageState>((set, get) => ({
           garage: response.data.garage,
           loading: false,
         });
+      } else {
+        set({ loading: false });
       }
     } catch (err) {
       const error = err as ApiError;
       set({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch garage",
+        error: error.response?.data?.message || error.message || "Failed to fetch garage",
         loading: false,
       });
     }
   },
 
   /* ============================ */
-  fetchNearbyGarages: async (lat, lng, radius = 10) => {
+  fetchNearbyGarages: async (lat, lng, radius = 10, limit = 20) => {
     try {
       set({ loading: true, error: null });
 
@@ -252,6 +214,7 @@ export const useGarageStore = create<GarageState>((set, get) => ({
         lat,
         lng,
         radius,
+        limit,
       });
 
       if (response.success) {
@@ -259,25 +222,24 @@ export const useGarageStore = create<GarageState>((set, get) => ({
           nearbyGarages: response.data.garages,
           loading: false,
         });
+      } else {
+        set({ loading: false });
       }
     } catch (err) {
       const error = err as ApiError;
       set({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch nearby garages",
+        error: error.response?.data?.message || error.message || "Failed to fetch nearby garages",
         loading: false,
       });
     }
   },
 
   /* ============================ */
-  fetchDeletedGarages: async (params) => {
+  fetchDeletedGarages: async () => {
     try {
       set({ loading: true, error: null });
 
-      const response = await garageService.getDeleted(params);
+      const response = await garageService.getDeleted();
 
       if (response.success) {
         set({
@@ -286,25 +248,24 @@ export const useGarageStore = create<GarageState>((set, get) => ({
           deletedGaragesStats: response.data.stats,
           loading: false,
         });
+      } else {
+        set({ loading: false });
       }
     } catch (err) {
       const error = err as ApiError;
       set({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch deleted garages",
+        error: error.response?.data?.message || error.message || "Failed to fetch deleted garages",
         loading: false,
       });
     }
   },
 
   /* ============================ */
-  fetchUnverifiedGarages: async (params) => {
+  fetchUnverifiedGarages: async () => {
     try {
       set({ loading: true, error: null });
 
-      const response = await garageService.getUnverified(params);
+      const response = await garageService.getUnverified();
 
       if (response.success) {
         set({
@@ -313,21 +274,19 @@ export const useGarageStore = create<GarageState>((set, get) => ({
           unverifiedGaragesStats: response.data.stats,
           loading: false,
         });
+      } else {
+        set({ loading: false });
       }
     } catch (err) {
       const error = err as ApiError;
       set({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch unverified garages",
+        error: error.response?.data?.message || error.message || "Failed to fetch unverified garages",
         loading: false,
       });
     }
   },
 
   /* ============================ */
-  // NEW: Fetch complete data action
   fetchCompleteData: async () => {
     try {
       set({ loading: true, error: null });
@@ -343,14 +302,12 @@ export const useGarageStore = create<GarageState>((set, get) => ({
         });
         return response.data;
       }
+      set({ loading: false });
       return null;
     } catch (err) {
       const error = err as ApiError;
       set({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch complete garage data",
+        error: error.response?.data?.message || error.message || "Failed to fetch complete garage data",
         loading: false,
       });
       return null;
@@ -358,11 +315,11 @@ export const useGarageStore = create<GarageState>((set, get) => ({
   },
 
   /* ============================ */
-  fetchGarageServices: async (garageId, params) => {
+  fetchGarageServices: async (garageId) => {
     try {
       set({ loading: true, error: null });
 
-      const response = await garageService.getServices(garageId, params);
+      const response = await garageService.getServices(garageId);
 
       if (response.success) {
         set({
@@ -371,25 +328,24 @@ export const useGarageStore = create<GarageState>((set, get) => ({
           categorySummary: response.data.categorySummary,
           loading: false,
         });
+      } else {
+        set({ loading: false });
       }
     } catch (err) {
       const error = err as ApiError;
       set({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch garage services",
+        error: error.response?.data?.message || error.message || "Failed to fetch garage services",
         loading: false,
       });
     }
   },
 
   /* ============================ */
-  fetchGarageReviews: async (garageId, params) => {
+  fetchGarageReviews: async (garageId) => {
     try {
       set({ loading: true, error: null });
 
-      const response = await garageService.getReviews(garageId, params);
+      const response = await garageService.getReviews(garageId);
 
       if (response.success) {
         set({
@@ -398,25 +354,24 @@ export const useGarageStore = create<GarageState>((set, get) => ({
           reviewsSummary: response.data.summary,
           loading: false,
         });
+      } else {
+        set({ loading: false });
       }
     } catch (err) {
       const error = err as ApiError;
       set({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch garage reviews",
+        error: error.response?.data?.message || error.message || "Failed to fetch garage reviews",
         loading: false,
       });
     }
   },
 
   /* ============================ */
-  fetchGarageBookings: async (garageId, params) => {
+  fetchGarageBookings: async (garageId) => {
     try {
       set({ loading: true, error: null });
 
-      const response = await garageService.getBookings(garageId, params);
+      const response = await garageService.getBookings(garageId);
 
       if (response.success) {
         set({
@@ -425,39 +380,37 @@ export const useGarageStore = create<GarageState>((set, get) => ({
           bookingsStats: response.data.stats,
           loading: false,
         });
+      } else {
+        set({ loading: false });
       }
     } catch (err) {
       const error = err as ApiError;
       set({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch garage bookings",
+        error: error.response?.data?.message || error.message || "Failed to fetch garage bookings",
         loading: false,
       });
     }
   },
 
   /* ============================ */
-  fetchGarageAnalytics: async (garageId, params) => {
+  fetchGarageAnalytics: async (garageId, period = "month") => {
     try {
       set({ loading: true, error: null });
 
-      const response = await garageService.getAnalytics(garageId, params);
+      const response = await garageService.getAnalytics(garageId, { period });
 
       if (response.success) {
         set({
           garageAnalytics: response.data,
           loading: false,
         });
+      } else {
+        set({ loading: false });
       }
     } catch (err) {
       const error = err as ApiError;
       set({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch garage analytics",
+        error: error.response?.data?.message || error.message || "Failed to fetch garage analytics",
         loading: false,
       });
     }
@@ -482,14 +435,12 @@ export const useGarageStore = create<GarageState>((set, get) => ({
         return newGarage;
       }
 
+      set({ loading: false });
       return null;
     } catch (err) {
       const error = err as ApiError;
       set({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to create garage",
+        error: error.response?.data?.message || error.message || "Failed to create garage",
         loading: false,
       });
       throw err;
@@ -508,9 +459,7 @@ export const useGarageStore = create<GarageState>((set, get) => ({
 
         set((state) => ({
           garage: updatedGarage,
-          garages: state.garages.map((g) =>
-            g._id === id ? updatedGarage : g
-          ),
+          garages: state.garages.map((g) => (g._id === id ? updatedGarage : g)),
           deletedGarages: state.deletedGarages.filter((g) => g._id !== id),
           unverifiedGarages: state.unverifiedGarages.filter((g) => g._id !== id),
           loading: false,
@@ -519,14 +468,12 @@ export const useGarageStore = create<GarageState>((set, get) => ({
         return updatedGarage;
       }
 
+      set({ loading: false });
       return null;
     } catch (err) {
       const error = err as ApiError;
       set({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to update garage",
+        error: error.response?.data?.message || error.message || "Failed to update garage",
         loading: false,
       });
       throw err;
@@ -547,14 +494,16 @@ export const useGarageStore = create<GarageState>((set, get) => ({
           loading: false,
           actionLoading: { ...state.actionLoading, [id]: false },
         }));
+      } else {
+        set((state) => ({
+          loading: false,
+          actionLoading: { ...state.actionLoading, [id]: false },
+        }));
       }
     } catch (err) {
       const error = err as ApiError;
       set((state) => ({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to delete garage",
+        error: error.response?.data?.message || error.message || "Failed to delete garage",
         loading: false,
         actionLoading: { ...state.actionLoading, [id]: false },
       }));
@@ -578,14 +527,16 @@ export const useGarageStore = create<GarageState>((set, get) => ({
           loading: false,
           actionLoading: { ...state.actionLoading, [id]: false },
         }));
+      } else {
+        set((state) => ({
+          loading: false,
+          actionLoading: { ...state.actionLoading, [id]: false },
+        }));
       }
     } catch (err) {
       const error = err as ApiError;
       set((state) => ({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to restore garage",
+        error: error.response?.data?.message || error.message || "Failed to restore garage",
         loading: false,
         actionLoading: { ...state.actionLoading, [id]: false },
       }));
@@ -623,14 +574,16 @@ export const useGarageStore = create<GarageState>((set, get) => ({
             actionLoading: { ...state.actionLoading, [id]: false },
           };
         });
+      } else {
+        set((state) => ({
+          loading: false,
+          actionLoading: { ...state.actionLoading, [id]: false },
+        }));
       }
     } catch (err) {
       const error = err as ApiError;
       set((state) => ({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to verify garage",
+        error: error.response?.data?.message || error.message || "Failed to verify garage",
         loading: false,
         actionLoading: { ...state.actionLoading, [id]: false },
       }));
@@ -660,14 +613,16 @@ export const useGarageStore = create<GarageState>((set, get) => ({
             actionLoading: { ...state.actionLoading, [id]: false },
           };
         });
+      } else {
+        set((state) => ({
+          loading: false,
+          actionLoading: { ...state.actionLoading, [id]: false },
+        }));
       }
     } catch (err) {
       const error = err as ApiError;
       set((state) => ({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to toggle garage",
+        error: error.response?.data?.message || error.message || "Failed to toggle garage",
         loading: false,
         actionLoading: { ...state.actionLoading, [id]: false },
       }));
@@ -696,20 +651,20 @@ export const useGarageStore = create<GarageState>((set, get) => ({
 
           return {
             garage: updatedGarage,
-            garages: state.garages.map((g) => g._id === garageId ? updatedGarage : g),
+            garages: state.garages.map((g) => (g._id === garageId ? updatedGarage : g)),
             loading: false,
           };
         });
 
         return response.data;
       }
+
+      set({ loading: false });
+      return null;
     } catch (err) {
       const error = err as ApiError;
       set({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to upload files",
+        error: error.response?.data?.message || error.message || "Failed to upload files",
         loading: false,
       });
       throw err;
@@ -729,7 +684,7 @@ export const useGarageStore = create<GarageState>((set, get) => ({
           if (!state.garage || state.garage._id !== garageId) return { loading: false };
 
           const updatedGarage = { ...state.garage };
-          if (type === 'images') {
+          if (type === "images") {
             updatedGarage.images = (state.garage.images || []).filter(
               (img) => !img.toString().includes(filename)
             );
@@ -741,18 +696,17 @@ export const useGarageStore = create<GarageState>((set, get) => ({
 
           return {
             garage: updatedGarage,
-            garages: state.garages.map((g) => g._id === garageId ? updatedGarage : g),
+            garages: state.garages.map((g) => (g._id === garageId ? updatedGarage : g)),
             loading: false,
           };
         });
+      } else {
+        set({ loading: false });
       }
     } catch (err) {
       const error = err as ApiError;
       set({
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to delete file",
+        error: error.response?.data?.message || error.message || "Failed to delete file",
         loading: false,
       });
       throw err;
