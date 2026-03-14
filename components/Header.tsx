@@ -29,7 +29,7 @@ import {
   HiOutlineClock,
   HiOutlineShieldCheck,
   HiOutlineBuildingOffice,
-  HiOutlineMapPin, // Changed from HiOutlineLocationMarker
+  HiOutlineMapPin,
   HiOutlineWrenchScrewdriver,
 } from "react-icons/hi2";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -40,11 +40,95 @@ import {
 import Image from "next/image";
 import { HiOutlineLogout, HiOutlineMenu, HiOutlineX } from "react-icons/hi";
 
+// Helper component for dashboard sections in desktop menu - MOVED TO TOP
+const DashboardSection = ({
+  title,
+  items,
+  setUserMenuOpen,
+}: {
+  title: string;
+  items: any[];
+  setUserMenuOpen: (open: boolean) => void;
+}) => (
+  <div className="mb-2">
+    {title && (
+      <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
+        {title}
+      </p>
+    )}
+    {items.map((item, index) => (
+      <Link
+        key={index}
+        href={item.href}
+        onClick={() => setUserMenuOpen(false)}
+        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-600 transition-all duration-200 group rounded-lg"
+      >
+        <span className="text-lg text-gray-400 group-hover:text-indigo-500 transition-colors">
+          {item.icon}
+        </span>
+        <div className="flex flex-col">
+          <span className="font-medium">
+            {item.label}
+          </span>
+          {item.description && (
+            <span className="text-xs text-gray-500">
+              {item.description}
+            </span>
+          )}
+        </div>
+      </Link>
+    ))}
+  </div>
+);
+
+// Helper component for mobile sections - MOVED TO TOP
+const MobileSection = ({
+  title,
+  items,
+  setMenuOpen,
+}: {
+  title: string;
+  items: any[];
+  setMenuOpen: (open: boolean) => void;
+}) => (
+  <div className="mb-4">
+    {title && (
+      <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+        {title}
+      </p>
+    )}
+    <div className="flex flex-col gap-1">
+      {items.map((item, index) => (
+        <Link
+          key={index}
+          href={item.href}
+          onClick={() => setMenuOpen(false)}
+          className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 transition-all duration-300"
+        >
+          <span className="text-xl text-gray-400">
+            {item.icon}
+          </span>
+          <div className="flex flex-col">
+            <span className="font-medium">
+              {item.label}
+            </span>
+            {item.description && (
+              <span className="text-xs text-gray-500">
+                {item.description}
+              </span>
+            )}
+          </div>
+        </Link>
+      ))}
+    </div>
+  </div>
+);
+
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [mounted, setMounted] = useState(false); // Fixed: Added = sign
+  const [mounted, setMounted] = useState(false);
   const [profileImageError, setProfileImageError] = useState(false);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -69,7 +153,7 @@ export default function Header() {
     {
       label: "Locations",
       icon: (
-        <HiOutlineMapPin className="w-5 h-5" /> // Changed from HiOutlineLocationMarker
+        <HiOutlineMapPin className="w-5 h-5" />
       ),
       href: "/locations",
       description: "Find a garage near you",
@@ -396,7 +480,7 @@ export default function Header() {
     >
       <div className="mx-auto px-4 md:px-6 lg:px-8 max-w-7xl">
         <div className="flex h-20 items-center justify-between">
-          Logo
+          {/* Logo */}
           <Link
             href="/"
             className="relative flex items-center gap-3 cursor-pointer group"
@@ -408,7 +492,7 @@ export default function Header() {
             </div>
             <div className="flex flex-col">
               <span className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500">
-                SCRG
+                {/* SCRG */}
               </span>
               <span className="text-[10px] font-medium text-gray-500 -mt-1">
                 Premium Car Care
@@ -932,87 +1016,3 @@ export default function Header() {
     </header>
   );
 }
-
-// Helper component for dashboard sections in desktop menu
-const DashboardSection = ({
-  title,
-  items,
-  setUserMenuOpen,
-}: {
-  title: string;
-  items: any[];
-  setUserMenuOpen: (open: boolean) => void;
-}) => (
-  <div className="mb-2">
-    {title && (
-      <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-        {title}
-      </p>
-    )}
-    {items.map((item, index) => (
-      <Link
-        key={index}
-        href={item.href}
-        onClick={() => setUserMenuOpen(false)}
-        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-600 transition-all duration-200 group rounded-lg"
-      >
-        <span className="text-lg text-gray-400 group-hover:text-indigo-500 transition-colors">
-          {item.icon}
-        </span>
-        <div className="flex flex-col">
-          <span className="font-medium">
-            {item.label}
-          </span>
-          {item.description && (
-            <span className="text-xs text-gray-500">
-              {item.description}
-            </span>
-          )}
-        </div>
-      </Link>
-    ))}
-  </div>
-);
-
-// Helper component for mobile sections
-const MobileSection = ({
-  title,
-  items,
-  setMenuOpen,
-}: {
-  title: string;
-  items: any[];
-  setMenuOpen: (open: boolean) => void;
-}) => (
-  <div className="mb-4">
-    {title && (
-      <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-        {title}
-      </p>
-    )}
-    <div className="flex flex-col gap-1">
-      {items.map((item, index) => (
-        <Link
-          key={index}
-          href={item.href}
-          onClick={() => setMenuOpen(false)}
-          className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 transition-all duration-300"
-        >
-          <span className="text-xl text-gray-400">
-            {item.icon}
-          </span>
-          <div className="flex flex-col">
-            <span className="font-medium">
-              {item.label}
-            </span>
-            {item.description && (
-              <span className="text-xs text-gray-500">
-                {item.description}
-              </span>
-            )}
-          </div>
-        </Link>
-      ))}
-    </div>
-  </div>
-);

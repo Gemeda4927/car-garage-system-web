@@ -1,307 +1,165 @@
-import {
-  useEffect,
-  useCallback,
-  useMemo,
-  useState,
-} from "react";
-import {
-  CreateServicePayload,
-  PopulatedService,
-  ServiceAnalytics,
-  ServiceBooking,
-  ServiceFilters,
-  UpdateServicePayload,
-} from "../types/service.types";
+import { useEffect } from "react";
 import { useServiceStore } from "../store/service.store";
+import { ServiceFilters } from "../types/service.types";
 
-interface UseServiceOptions {
-  autoFetch?: boolean;
-  garageId?: string;
-  filters?: ServiceFilters;
-}
-
-interface UseServiceReturn {
-  // State
-  services: PopulatedService[];
-  currentService: PopulatedService | null;
-  bookings: ServiceBooking[];
-  analytics: ServiceAnalytics | null;
-  categories: string[];
-  filters: ServiceFilters;
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
-  loading: boolean;
-  error: string | null;
-
-  // Actions
-  createService: (
-    payload: CreateServicePayload
-  ) => Promise<PopulatedService>;
-  fetchServices: (
-    filters?: ServiceFilters
-  ) => Promise<void>;
-  fetchServiceById: (
-    serviceId: string
-  ) => Promise<PopulatedService>;
-  updateService: (
-    serviceId: string,
-    payload: UpdateServicePayload
-  ) => Promise<PopulatedService>;
-  toggleAvailability: (
-    serviceId: string
-  ) => Promise<PopulatedService>;
-  deleteService: (
-    serviceId: string
-  ) => Promise<void>;
-  restoreService: (
-    serviceId: string
-  ) => Promise<PopulatedService>;
-  hardDeleteService: (
-    serviceId: string
-  ) => Promise<void>;
-  fetchServiceBookings: (
-    serviceId: string,
-    filters?: any
-  ) => Promise<ServiceBooking[]>;
-  fetchServiceAnalytics: (
-    serviceId: string
-  ) => Promise<ServiceAnalytics>;
-  fetchCategories: (
-    garageId?: string
-  ) => Promise<string[]>;
-  fetchServicesByGarage: (
-    garageId: string,
-    filters?: Omit<ServiceFilters, "garageId">
-  ) => Promise<void>;
-  setFilters: (
-    filters: Partial<ServiceFilters>
-  ) => void;
-  resetFilters: () => void;
-  clearError: () => void;
-  clearCurrentService: () => void;
-  refreshServices: () => Promise<void>;
-
-  // Computed
-  availableServices: PopulatedService[];
-  unavailableServices: PopulatedService[];
-  getServicesByCategory: (
-    category: string
-  ) => PopulatedService[];
-  getServiceById: (
-    serviceId: string
-  ) => PopulatedService | undefined;
-  totalRevenue: number;
-  averagePrice: number;
-
-  // Trash toggle
-  showDeleted: boolean;
-  toggleShowDeleted: () => void;
-}
-
-export const useService = (
-  options: UseServiceOptions = {}
-): UseServiceReturn => {
+export const useService = (options?: { autoFetch?: boolean; filters?: ServiceFilters }) => {
   const {
-    autoFetch = true,
-    garageId,
-    filters: initialFilters,
-  } = options;
+    services,
+    categoryStats,
+    pagination,
+    selectedService,
+    isLoading,
+    error,
+    filters,
+    fetchServices,
+    fetchServiceById,
+    createService,
+    updateService,
+    deleteService,
+    toggleAvailability,
+    restoreService,
+    hardDeleteService,
+    clearSelectedService,
+    setFilters,
+    resetFilters,
+    clearError,
+  } = useServiceStore();
 
-  const store = useServiceStore();
-
-  // Local state for showing deleted/trashed services
-  const [showDeleted, setShowDeleted] =
-    useState(false);
-  const toggleShowDeleted = () =>
-    setShowDeleted((prev) => !prev);
-
-  // Computed services arrays (safely filter undefined)
-  const safeServices = useMemo(
-    () => store.services?.filter(Boolean) || [],
-    [store.services]
-  );
-
-  const availableServices = useMemo(
-    () =>
-      safeServices.filter(
-        (s) => !s.isDeleted && s.isAvailable
-      ),
-    [safeServices]
-  );
-
-  const unavailableServices = useMemo(
-    () =>
-      safeServices.filter(
-        (s) => !s.isDeleted && !s.isAvailable
-      ),
-    [safeServices]
-  );
-
-  const getServicesByCategory = useCallback(
-    (category: string) =>
-      safeServices.filter(
-        (s) =>
-          s.category === category &&
-          (!s.isDeleted || showDeleted)
-      ),
-    [safeServices, showDeleted]
-  );
-
-  const getServiceById = useCallback(
-    (serviceId: string) =>
-      safeServices.find(
-        (s) => s._id === serviceId
-      ),
-    [safeServices]
-  );
-
-  const totalRevenue = useMemo(
-    () => store.analytics?.totalRevenue || 0,
-    [store.analytics]
-  );
-
-  const averagePrice = useMemo(() => {
-    if (safeServices.length === 0) return 0;
-    const total = safeServices.reduce(
-      (sum, s) => sum + (s.price || 0),
-      0
-    );
-    return total / safeServices.length;
-  }, [safeServices]);
-
-  // Auto-fetch services
+  // Auto fetch on mount if enabled
   useEffect(() => {
-    if (autoFetch) {
-      if (garageId) {
-        store.fetchServicesByGarage(
-          garageId,
-          initialFilters
-        );
-      } else {
-        store.fetchServices(initialFilters);
-      }
+    if (options?.autoFetch !== false) {
+      fetchServices(options?.filters);
     }
-  }, [
-    autoFetch,
-    garageId,
-    initialFilters,
-    store,
-  ]);
+  }, []);
 
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
-  const refreshServices =
-    // eslint-disable-next-line react-hooks/preserve-manual-memoization
-    useCallback(async () => {
-      store.invalidateCache();
-      if (garageId) {
-        await store.fetchServicesByGarage(
-          garageId,
-          store.filters
-        );
-      } else {
-        await store.fetchServices(store.filters);
-      }
-    }, [garageId, store.filters]);
+  // Get services by category
+  const getServicesByCategory = (category: string) => {
+    return services.filter(s => s.category === category);
+  };
 
-  const categories = useMemo(() => {
-    return Array.from(
-      new Set(safeServices.map((s) => s.category))
+  // Get available services
+  const getAvailableServices = () => {
+    return services.filter(s => s.isAvailable === true);
+  };
+
+  // Get unavailable services
+  const getUnavailableServices = () => {
+    return services.filter(s => s.isAvailable === false);
+  };
+
+  // Search services
+  const searchServices = (query: string) => {
+    return services.filter(s => 
+      s.name.toLowerCase().includes(query.toLowerCase()) ||
+      s.description.toLowerCase().includes(query.toLowerCase())
     );
-  }, [safeServices]);
+  };
 
-  // Garage-specific helpers
-  const garageActions = useMemo(
-    () => ({
-      getServicesByGarage: (id: string) =>
-        safeServices.filter((s) =>
-          typeof s.garage === "string"
-            ? s.garage === id
-            : s.garage?._id === id
-        ),
+  // Get price range
+  const getPriceRange = () => {
+    if (services.length === 0) return { min: 0, max: 0 };
+    const prices = services.map(s => s.price);
+    return {
+      min: Math.min(...prices),
+      max: Math.max(...prices),
+    };
+  };
 
-      getGarageCategories: (id: string) => {
-        const services = safeServices.filter(
-          (s) =>
-            typeof s.garage === "string"
-              ? s.garage === id
-              : s.garage?._id === id
-        );
-        const cats = Array.from(
-          new Set(services.map((s) => s.category))
-        );
-        return cats.map((cat) => ({
-          category: cat,
-          count: services.filter(
-            (s) => s.category === cat
-          ).length,
-          minPrice: Math.min(
-            ...services
-              .filter((s) => s.category === cat)
-              .map((s) => s.price)
-          ),
-          maxPrice: Math.max(
-            ...services
-              .filter((s) => s.category === cat)
-              .map((s) => s.price)
-          ),
-        }));
-      },
-    }),
-    [safeServices]
-  );
+  // Get unique categories
+  const getUniqueCategories = () => {
+    return [...new Set(services.map(s => s.category))];
+  };
+
+  // Get service by ID from local state
+  const getServiceById = (id: string) => {
+    return services.find(s => s._id === id) || null;
+  };
+
+  // Refresh services with current filters
+  const refreshServices = () => {
+    return fetchServices(filters);
+  };
+
+  // Get services by price range
+  const getServicesByPriceRange = (min: number, max: number) => {
+    return services.filter(s => s.price >= min && s.price <= max);
+  };
+
+  // Get services by duration
+  const getServicesByDuration = (maxDuration: number) => {
+    return services.filter(s => s.duration <= maxDuration);
+  };
+
+  // Get service stats
+  const getServiceStats = () => {
+    const total = services.length;
+    const available = services.filter(s => s.isAvailable).length;
+    const unavailable = services.filter(s => !s.isAvailable).length;
+    const categories = getUniqueCategories().length;
+    const avgPrice = total > 0 
+      ? services.reduce((sum, s) => sum + s.price, 0) / total 
+      : 0;
+    const minPrice = total > 0 ? Math.min(...services.map(s => s.price)) : 0;
+    const maxPrice = total > 0 ? Math.max(...services.map(s => s.price)) : 0;
+
+    return {
+      total,
+      available,
+      unavailable,
+      categories,
+      avgPrice,
+      minPrice,
+      maxPrice,
+    };
+  };
 
   return {
-    // State
-    services: safeServices,
-    currentService: store.currentService,
-    bookings: store.bookings,
-    analytics: store.analytics,
-    categories,
-    filters: store.filters,
-    pagination: store.pagination,
-    loading: store.loading,
-    error: store.error,
+    // Data
+    services,
+    categoryStats,
+    pagination,
+    selectedService,
+    isLoading,
+    error,
+    filters,
 
-    // Actions
-    createService: store.createService,
-    fetchServices: store.fetchServices,
-    fetchServiceById: store.fetchServiceById,
-    updateService: store.updateService,
-    toggleAvailability: store.toggleAvailability,
-    deleteService: store.deleteService,
-    restoreService: store.restoreService,
-    hardDeleteService: store.hardDeleteService,
-    fetchServiceBookings:
-      store.fetchServiceBookings,
-    fetchServiceAnalytics:
-      store.fetchServiceAnalytics,
-    fetchCategories: store.fetchCategories,
-    fetchServicesByGarage:
-      store.fetchServicesByGarage,
-    setFilters: store.setFilters,
-    resetFilters: store.resetFilters,
-    clearError: store.clearError,
-    clearCurrentService:
-      store.clearCurrentService,
-    refreshServices,
-
-    // Computed
-    availableServices,
-    unavailableServices,
+    // CRUD Operations
+    fetchServices,
+    fetchServiceById,
+    createService,
+    updateService,
+    deleteService,
+    toggleAvailability,
+    restoreService,
+    hardDeleteService,
+    clearSelectedService,
+    
+    // Filter controls
+    setFilters,
+    resetFilters,
+    clearError,
+    
+    // Helper methods
     getServicesByCategory,
+    getAvailableServices,
+    getUnavailableServices,
+    searchServices,
+    getPriceRange,
+    getUniqueCategories,
     getServiceById,
-    totalRevenue,
-    averagePrice,
-
-    // Trash toggle
-    showDeleted,
-    toggleShowDeleted,
-
-    // Garage helpers
-    ...garageActions,
+    refreshServices,
+    getServicesByPriceRange,
+    getServicesByDuration,
+    getServiceStats,
+    
+    // Convenience getters
+    availableServices: getAvailableServices(),
+    unavailableServices: getUnavailableServices(),
+    totalServices: services.length,
+    availableCount: getAvailableServices().length,
+    unavailableCount: getUnavailableServices().length,
+    uniqueCategories: getUniqueCategories(),
+    priceRange: getPriceRange(),
+    stats: getServiceStats(),
   };
 };

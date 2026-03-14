@@ -1,14 +1,6 @@
-// service.types.ts
+// types/service.types.ts
 
-// Booking information
-export interface ServiceBooking {
-  _id: string;
-  service: string;
-  bookingDate: string; // ISO string
-  status: "pending" | "approved" | "cancelled" | "completed" | "rejected";
-}
-
-// Garage statistics
+// Garage Stats
 export interface GarageStats {
   totalBookings: number;
   completedBookings: number;
@@ -16,7 +8,7 @@ export interface GarageStats {
   totalReviews: number;
 }
 
-// Garage address
+// Garage Address
 export interface GarageAddress {
   street: string;
   city: string;
@@ -25,147 +17,163 @@ export interface GarageAddress {
   zipCode: string;
 }
 
-// Garage contact info
+// Garage Contact Info
 export interface GarageContactInfo {
   phone: string;
   email: string;
-  website: string;
 }
 
-// Garage reference (populated)
-export interface GarageReference {
+// Populated Garage (when garage details are included)
+export interface PopulatedGarage {
   _id: string;
   name: string;
   address: GarageAddress;
   contactInfo: GarageContactInfo;
-  status: "pending" | "active" | "suspended" | "approved";
+  status: string;
   stats: GarageStats;
   isActive: boolean;
   isVerified: boolean;
 }
 
-// Base Service interface
+// Service with populated garage
 export interface Service {
   _id: string;
   name: string;
   description: string;
   price: number;
-  duration: number; // in minutes
+  duration: number;
   category: string;
-  garage: string | GarageReference; // string if unpopulated, GarageReference if populated
-  images: string[]; // URLs or paths
-  documents: string[]; // URLs or paths
+  garage: PopulatedGarage;  // Garage is always populated in your response
+  images: string[];
+  documents: string[];
   isAvailable: boolean;
   isDeleted: boolean;
-  createdAt: string; // ISO string
-  updatedAt: string; // ISO string
+  createdAt: string;
+  updatedAt: string;
   __v: number;
-  bookings?: ServiceBooking[]; // optional, may not exist
+  bookings?: unknown[];  // Optional array for bookings
+  garageId?: string; // Keep for backward compatibility
+  id?: string;       // Some APIs return both _id and id
 }
 
-// Fully populated service (garage is always populated)
-export interface PopulatedService extends Omit<Service, 'garage'> {
-  garage: GarageReference;
-}
-
-// Category stats
-export interface CategoryStats {
-  _id: string;
+// Category Statistics
+export interface CategoryStat {
+  _id: string;        // category name
   count: number;
   avgPrice: number;
   minPrice: number;
   maxPrice: number;
 }
 
-// Response for listing services
-export interface ServicesResponseData {
-  services: PopulatedService[];
-  categoryStats: CategoryStats[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
+// Pagination
+export interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
+// Main response for getting all services
+export interface ServicesResponse {
+  success: boolean;
+  data: {
+    services: Service[];
+    categoryStats: CategoryStat[];
+    pagination: Pagination;
   };
 }
 
-export interface ServicesResponse {
-  success: boolean;
-  data: ServicesResponseData;
-}
-
-// Response for a single service
-export interface ServiceResponseData {
-  service: PopulatedService;
-}
-
+// Response for single service
 export interface ServiceResponse {
   success: boolean;
-  data: ServiceResponseData;
+  message?: string;
+  data: {
+    service: Service;
+  };
 }
 
-// Payloads
-export interface CreateServicePayload {
+// Create service payload
+export interface CreateServiceData {
   name: string;
   description: string;
   price: number;
   duration: number;
   category: string;
   garageId: string;
-  images?: string[];
-  documents?: string[];
 }
 
-export interface UpdateServicePayload {
+// Update service payload
+export interface UpdateServiceData {
   name?: string;
   description?: string;
   price?: number;
   duration?: number;
   category?: string;
-  images?: string[];
-  documents?: string[];
+  isAvailable?: boolean;
 }
 
-// Filters for querying services
+// Categories response
+export interface CategoriesResponse {
+  success: boolean;
+  data: {
+    categories: string[];
+  };
+}
+
+// Service filters for query params
 export interface ServiceFilters {
   garageId?: string;
   category?: string;
-  isAvailable?: boolean;
   minPrice?: number;
   maxPrice?: number;
   search?: string;
   page?: number;
   limit?: number;
-  sortBy?: string; // e.g., "price" | "duration"
-  sortOrder?: "asc" | "desc";
+  sortBy?: string;
+  isAvailable?: boolean;
 }
 
-// Analytics for a service
+// Toggle availability response
+export interface ToggleAvailabilityResponse {
+  success: boolean;
+  data: {
+    service: Service;
+    message: string;
+  };
+}
+
+// Delete service response
+export interface DeleteServiceResponse {
+  success: boolean;
+  message: string;
+}
+
+// Restore service response
+export interface RestoreServiceResponse {
+  success: boolean;
+  data: {
+    service: Service;
+  };
+}
+
+// Hard delete service response
+export interface HardDeleteServiceResponse {
+  success: boolean;
+  message: string;
+}
+
+// Service Analytics
 export interface ServiceAnalytics {
   totalBookings: number;
   completedBookings: number;
   cancelledBookings: number;
   totalRevenue: number;
-  averageRating: number;
-  monthlyTrend: Array<{
-    month: string; // e.g., "2026-03"
+  averageRating?: number;
+  monthlyStats?: Array<{
+    month: string;
     bookings: number;
     revenue: number;
   }>;
-}
-
-// Responses
-export interface ServiceBookingsResponse {
-  success: boolean;
-  data: {
-    bookings: ServiceBooking[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      pages: number;
-    };
-  };
 }
 
 export interface ServiceAnalyticsResponse {
@@ -173,14 +181,37 @@ export interface ServiceAnalyticsResponse {
   data: ServiceAnalytics;
 }
 
-export interface CategoriesResponse {
-  success: boolean;
-  data: {
-    categories: CategoryStats[];
+// Service Bookings
+export interface ServiceBooking {
+  _id: string;
+  bookingDate: string;
+  timeSlot: {
+    start: string;
+    end: string;
+  };
+  status: string;
+  customer: {
+    name: string;
+    email: string;
+  };
+  vehicleInfo: {
+    make: string;
+    model: string;
+    licensePlate: string;
   };
 }
 
-// API error
+export interface ServiceBookingsResponse {
+  success: boolean;
+  data: {
+    bookings: ServiceBooking[];
+    totalCount: number;
+    page: number;
+    limit: number;
+  };
+}
+
+// API Error
 export interface ApiError {
   success: false;
   message: string;

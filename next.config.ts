@@ -1,21 +1,18 @@
-
 import path from "path";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ["images.unsplash.com"], // Add your image domains
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+    ],
   },
   turbopack: {
-    root: path.join(__dirname), // Explicitly set the root directory
-    // Optional: Add custom resolve extensions if needed
-    resolveExtensions: [
-      ".tsx",
-      ".ts",
-      ".jsx",
-      ".js",
-      ".json",
-    ],
+    root: path.join(__dirname),
+    resolveExtensions: [".tsx", ".ts", ".jsx", ".js", ".json"],
   },
 };
 
