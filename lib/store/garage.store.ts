@@ -1,5 +1,8 @@
 import { create } from "zustand";
-import { CompleteGaragesData, garageService } from "../api/garage.api";
+import {
+  CompleteGaragesData,
+  garageService,
+} from "../api/garage.api";
 import {
   CreateGaragePayload,
   UpdateGaragePayload,
@@ -93,7 +96,12 @@ interface GarageState {
   // Actions
   fetchGarages: () => Promise<void>;
   fetchGarage: (id: string) => Promise<void>;
-  fetchNearbyGarages: (lat: number, lng: number, radius?: number, limit?: number) => Promise<void>;
+  fetchNearbyGarages: (
+    lat: number,
+    lng: number,
+    radius?: number,
+    limit?: number
+  ) => Promise<void>;
   fetchDeletedGarages: () => Promise<void>;
   fetchUnverifiedGarages: () => Promise<void>;
 
@@ -103,7 +111,10 @@ interface GarageState {
   fetchGarageServices: (garageId: string) => Promise<void>;
   fetchGarageReviews: (garageId: string) => Promise<void>;
   fetchGarageBookings: (garageId: string) => Promise<void>;
-  fetchGarageAnalytics: (garageId: string, period?: "week" | "month" | "quarter" | "year") => Promise<void>;
+  fetchGarageAnalytics: (
+    garageId: string,
+    period?: "week" | "month" | "quarter" | "year"
+  ) => Promise<void>;
 
   createGarage: (data: CreateGaragePayload) => Promise<PopulatedGarage | null>;
   updateGarage: (id: string, data: UpdateGaragePayload) => Promise<PopulatedGarage | null>;
@@ -114,7 +125,11 @@ interface GarageState {
   toggleActiveGarage: (id: string) => Promise<void>;
 
   uploadFiles: (garageId: string, data: FormData) => Promise<any>;
-  deleteFile: (garageId: string, filename: string, type: "images" | "documents") => Promise<void>;
+  deleteFile: (
+    garageId: string,
+    filename: string,
+    type: "images" | "documents"
+  ) => Promise<void>;
 
   clearError: () => void;
   resetGarage: () => void;
@@ -206,27 +221,26 @@ export const useGarageStore = create<GarageState>((set, get) => ({
   },
 
   /* ============================ */
-  fetchNearbyGarages: async (lat, lng, radius = 10, limit = 20) => {
+  fetchNearbyGarages: async (lat: number, lng: number, radius: number = 10, limit: number = 20) => {
     try {
       set({ loading: true, error: null });
 
-      const response = await garageService.getNearby({
-        lat,
-        lng,
-        radius,
-        limit,
-      });
+      console.log("Store calling getNearby with:", { lat, lng, radius, limit });
+
+      const response = await garageService.getNearby(lat, lng, radius, limit);
 
       if (response.success) {
         set({
           nearbyGarages: response.data.garages,
           loading: false,
         });
+        console.log("Nearby garages fetched:", response.data);
       } else {
         set({ loading: false });
       }
     } catch (err) {
       const error = err as ApiError;
+      console.error("Error in fetchNearbyGarages:", error);
       set({
         error: error.response?.data?.message || error.message || "Failed to fetch nearby garages",
         loading: false,
@@ -483,7 +497,11 @@ export const useGarageStore = create<GarageState>((set, get) => ({
   /* ============================ */
   deleteGarage: async (id) => {
     try {
-      set({ loading: true, error: null, actionLoading: { ...get().actionLoading, [id]: true } });
+      set({
+        loading: true,
+        error: null,
+        actionLoading: { ...get().actionLoading, [id]: true },
+      });
 
       const response = await garageService.delete(id);
 
@@ -514,7 +532,11 @@ export const useGarageStore = create<GarageState>((set, get) => ({
   /* ============================ */
   restoreGarage: async (id) => {
     try {
-      set({ loading: true, error: null, actionLoading: { ...get().actionLoading, [id]: true } });
+      set({
+        loading: true,
+        error: null,
+        actionLoading: { ...get().actionLoading, [id]: true },
+      });
 
       const response = await garageService.restore(id);
 
@@ -546,7 +568,11 @@ export const useGarageStore = create<GarageState>((set, get) => ({
   /* ============================ */
   verifyGarage: async (id, data) => {
     try {
-      set({ loading: true, error: null, actionLoading: { ...get().actionLoading, [id]: true } });
+      set({
+        loading: true,
+        error: null,
+        actionLoading: { ...get().actionLoading, [id]: true },
+      });
 
       const response = await garageService.verify(id, data);
 
@@ -593,7 +619,11 @@ export const useGarageStore = create<GarageState>((set, get) => ({
   /* ============================ */
   toggleActiveGarage: async (id) => {
     try {
-      set({ loading: true, error: null, actionLoading: { ...get().actionLoading, [id]: true } });
+      set({
+        loading: true,
+        error: null,
+        actionLoading: { ...get().actionLoading, [id]: true },
+      });
 
       const response = await garageService.toggleActive(id);
 

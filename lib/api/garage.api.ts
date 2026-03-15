@@ -209,12 +209,27 @@ export const garageService = {
   toggleActive: (garageId: string) =>
     api.put<ApiResponse<{ isActive: boolean }>>(`garages/${garageId}/toggle-active`),
 
-  // -----------------------------
-  // Get Nearby Garages
-  // GET /garages/nearby
-  // -----------------------------
-  getNearby: (params: { lat: number; lng: number; radius?: number; limit?: number }) =>
-    api.get<ApiResponse<{ garages: PopulatedGarage[] }>>("garages/nearby", { params }),
+
+// -----------------------------
+// Get Nearby Garages - FIXED VERSION
+// GET /garages/nearby
+// -----------------------------
+getNearby: (lat: number, lng: number, radius?: number, limit?: number) => {
+  // Create flat params object - NO NESTING
+  const params: Record<string, number> = {
+    lat,
+    lng,
+  };
+  
+  // Add optional parameters if provided
+  if (radius !== undefined) params.radius = radius;
+  if (limit !== undefined) params.limit = limit;
+  
+  console.log('Calling getNearby with params:', params); // Debug log
+  
+  // Make the request with flat params
+  return api.get<ApiResponse<{ garages: PopulatedGarage[] }>>("garages/nearby", { params });
+},
 
   // -----------------------------
   // Get Garage Services

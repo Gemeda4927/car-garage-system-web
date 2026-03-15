@@ -765,11 +765,16 @@ export interface UseGarageReturn {
     params?: Record<string, unknown>
   ) => Promise<void>;
   fetchGarage: (id: string) => Promise<void>;
+
+
   fetchNearbyGarages: (
     lat: number,
     lng: number,
     radius?: number
   ) => Promise<void>;
+
+
+  
   fetchDeletedGarages: (
     params?: Record<string, unknown>
   ) => Promise<void>;

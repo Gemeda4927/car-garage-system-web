@@ -9,7 +9,7 @@ import {
 import { api } from "./api";
 
 class ServiceApi {
-  private baseUrl = "/services";
+  private baseUrl = "services";
 
   // GET /services - Get all services with filters
   async getAllServices(filters?: ServiceFilters): Promise<ServicesResponse> {

@@ -18,6 +18,19 @@ const apiClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
+  // Add paramsSerializer to ensure flat parameters
+  paramsSerializer: {
+    serialize: (params) => {
+      const searchParams = new URLSearchParams();
+      Object.keys(params).forEach(key => {
+        const value = params[key];
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, String(value));
+        }
+      });
+      return searchParams.toString();
+    },
+  },
 });
 
 // --- Token handling ---
@@ -55,6 +68,11 @@ apiClient.interceptors.request.use(
     } else {
       console.log("No token available for request:", config.url);
     }
+
+    // Log the full URL with params for debugging
+    const fullUrl = `${config.baseURL}${config.url}`;
+    const queryString = config.params ? '?' + new URLSearchParams(config.params as any).toString() : '';
+    console.log('🌐 Full request URL:', fullUrl + queryString);
 
     return config;
   },
@@ -128,12 +146,20 @@ const request = async <T = unknown, D = unknown>({
 }): Promise<T> => {
   try {
     console.log(`Making ${method} request to: ${url}`);
+    console.log('Request params:', params);
+
+    // Ensure params are flat - if params is an object with a 'params' property, flatten it
+    let flatParams = params;
+    if (params && typeof params === 'object' && 'params' in params) {
+      flatParams = (params as any).params;
+      console.log('Flattened params from nested structure:', flatParams);
+    }
 
     const response: AxiosResponse<T> = await apiClient({
       url,
       method,
       data,
-      params,
+      params: flatParams,
       headers,
     });
 
