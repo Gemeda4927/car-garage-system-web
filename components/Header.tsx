@@ -40,7 +40,7 @@ import {
 import Image from "next/image";
 import { HiOutlineLogout, HiOutlineMenu, HiOutlineX } from "react-icons/hi";
 
-// Helper component for dashboard sections in desktop menu - MOVED TO TOP
+// Helper component for dashboard sections in desktop menu
 const DashboardSection = ({
   title,
   items,
@@ -81,7 +81,7 @@ const DashboardSection = ({
   </div>
 );
 
-// Helper component for mobile sections - MOVED TO TOP
+// Helper component for mobile sections
 const MobileSection = ({
   title,
   items,
@@ -492,7 +492,7 @@ export default function Header() {
             </div>
             <div className="flex flex-col">
               <span className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500">
-                {/* SCRG */}
+                SCRG
               </span>
               <span className="text-[10px] font-medium text-gray-500 -mt-1">
                 Premium Car Care
