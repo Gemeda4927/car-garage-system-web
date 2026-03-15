@@ -43,6 +43,9 @@ import {
 } from "react-icons/hi2";
 import { Service } from "@/lib/types/service.types";
 import { useService } from "@/lib/hooks/useService";
+import { usePaymentStoress } from "@/lib/store/payment.stores";
+import BookingTable from "@/components/BookingTable";
+import SettingsPage from "@/components/Settings";
 
 
 type TabType =
@@ -52,7 +55,6 @@ type TabType =
   | "bookings"
   | "services"
   | "payments"
-  | "verifications"
   | "settings";
 type UserViewType = "active" | "deleted";
 type GarageViewType = "active" | "deleted";
@@ -135,7 +137,10 @@ export default function AdminDashboardPage() {
     fetchStatistics,
     refundPayment,
     verifyPayment,
-  } = usePaymentStore();
+  } = usePaymentStoress();
+
+
+
 
   // State
   const [activeTab, setActiveTab] = useState<TabType>("overview");
@@ -943,12 +948,6 @@ export default function AdminDashboardPage() {
       label: "Payments",
       key: "payments",
       color: "pink",
-    },
-    {
-      icon: HiOutlineShieldCheck,
-      label: "Verifications",
-      key: "verifications",
-      color: "yellow",
     },
     {
       icon: HiOutlineCog,
@@ -2035,56 +2034,36 @@ export default function AdminDashboardPage() {
             </motion.div>
           )}
 
-          {/* Placeholder for other tabs */}
-          {(activeTab === "bookings" || activeTab === "verifications" || activeTab === "settings") && (
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="bg-white p-12 rounded-xl shadow-sm border border-gray-200 text-center"
-            >
-              <motion.div
-                animate={{
-                  scale: [1, 1.1, 1],
-                  rotate: [0, 5, -5, 0],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                }}
-                className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6"
-              >
-                {activeTab === "bookings" && (
-                  <HiOutlineClipboardDocumentList className="w-12 h-12 text-gray-400" />
-                )}
-                {activeTab === "verifications" && (
-                  <HiOutlineShieldCheck className="w-12 h-12 text-gray-400" />
-                )}
-                {activeTab === "settings" && (
-                  <HiOutlineCog className="w-12 h-12 text-gray-400" />
-                )}
-              </motion.div>
+         
 
-              <h3 className="text-2xl font-semibold text-gray-700 mb-2 capitalize">
-                {activeTab} Management
-              </h3>
+{/* Placeholder for other tabs */}
+{(activeTab === "bookings" || activeTab === "settings") && (
+  <motion.div
+    key={activeTab}
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+    transition={{ duration: 0.3 }}
+    className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+  >
+    {activeTab === "bookings" && (
+      <div className="p-6">
+        <BookingTable
+          onEdit={(booking) => console.log("Edit booking:", booking)}
+          onDelete={(id) => console.log("Delete booking:", id)}
+          onStatusChange={(updatedBooking) => console.log("Status updated:", updatedBooking)}
+          showStatusFilter={true}
+          showGarageFilter={true}
+          filterParams={{ page: 1, limit: 10 }}
+        />
+      </div>
+    )}
 
-              <p className="text-gray-500 mb-6">
-                This section is under construction. Check back soon!
-              </p>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setActiveTab("overview")}
-                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                Return to Overview
-              </motion.button>
-            </motion.div>
-          )}
+    {activeTab === "settings" && (
+      <SettingsPage />
+    )}
+  </motion.div>
+)}
         </AnimatePresence>
       </main>
     </div>

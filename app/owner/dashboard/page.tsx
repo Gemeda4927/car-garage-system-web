@@ -1538,7 +1538,7 @@ export default function OwnerDashboardPage(): JSX.Element {
                       "Dashboard Overview"}
                     {activeTab === "garage" &&
                       "My Garage"}
-                    {activeTab === "bookings" &&
+                    {activeTab === "bookingss" &&
                       "Bookings Management"}
                     {activeTab === "services" &&
                       "Services Management"}
