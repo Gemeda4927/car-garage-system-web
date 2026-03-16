@@ -19,26 +19,25 @@ import {
   HiOutlineCog,
   HiOutlineShare,
   HiOutlineMinus,
-  HiOutlineH1,
   HiOutlineChevronDown,
   HiOutlineSparkles,
   HiOutlineStar,
   HiOutlineCalendar,
   HiOutlineCreditCard,
-  HiOutlineChartBar,
+ HiOutlineChartBar,
   HiOutlineClock,
   HiOutlineShieldCheck,
-  HiOutlineBuildingOffice,
-  HiOutlineMapPin,
-  HiOutlineWrenchScrewdriver,
-} from "react-icons/hi2";
+  HiOutlineLogout,
+  HiOutlineMenu,
+  HiOutlineX,
+} from "react-icons/hi";
+import { HiOutlineBuildingOffice, HiOutlineMapPin, HiOutlineWrenchScrewdriver } from "react-icons/hi2";
 import { useAuth } from "@/lib/hooks/useAuth";
 import {
   motion,
   AnimatePresence,
 } from "framer-motion";
 import Image from "next/image";
-import { HiOutlineLogout, HiOutlineMenu, HiOutlineX } from "react-icons/hi";
 
 // Helper component for dashboard sections in desktop menu
 const DashboardSection = ({
@@ -67,13 +66,9 @@ const DashboardSection = ({
           {item.icon}
         </span>
         <div className="flex flex-col">
-          <span className="font-medium">
-            {item.label}
-          </span>
+          <span className="font-medium">{item.label}</span>
           {item.description && (
-            <span className="text-xs text-gray-500">
-              {item.description}
-            </span>
+            <span className="text-xs text-gray-500">{item.description}</span>
           )}
         </div>
       </Link>
@@ -105,17 +100,11 @@ const MobileSection = ({
           onClick={() => setMenuOpen(false)}
           className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700 transition-all duration-300"
         >
-          <span className="text-xl text-gray-400">
-            {item.icon}
-          </span>
+          <span className="text-xl text-gray-400">{item.icon}</span>
           <div className="flex flex-col">
-            <span className="font-medium">
-              {item.label}
-            </span>
+            <span className="font-medium">{item.label}</span>
             {item.description && (
-              <span className="text-xs text-gray-500">
-                {item.description}
-              </span>
+              <span className="text-xs text-gray-500">{item.description}</span>
             )}
           </div>
         </Link>
@@ -144,33 +133,25 @@ export default function Header() {
   const navItems = [
     {
       label: "Services",
-      icon: (
-        <HiOutlineWrenchScrewdriver className="w-5 h-5" />
-      ),
+      icon: <HiOutlineWrenchScrewdriver className="w-5 h-5" />,
       href: "/services",
       description: "Explore our premium car care services",
     },
     {
       label: "Locations",
-      icon: (
-        <HiOutlineMapPin className="w-5 h-5" />
-      ),
+      icon: <HiOutlineMapPin className="w-5 h-5" />,
       href: "/locations",
       description: "Find a garage near you",
     },
     {
       label: "About",
-      icon: (
-        <HiOutlineUserGroup className="w-5 h-5" />
-      ),
+      icon: <HiOutlineUserGroup className="w-5 h-5" />,
       href: "/about",
       description: "Learn about our story",
     },
     {
       label: "Contact",
-      icon: (
-        <HiOutlinePhone className="w-5 h-5" />
-      ),
+      icon: <HiOutlinePhone className="w-5 h-5" />,
       href: "/contact",
       description: "Get in touch with us",
     },
@@ -254,7 +235,7 @@ export default function Header() {
         return "bg-purple-100 text-purple-700 border-purple-200";
       case "garage_owner":
         return "bg-blue-100 text-blue-700 border-blue-200";
-      default:
+      default: // user
         return "bg-emerald-100 text-emerald-700 border-emerald-200";
     }
   };
@@ -262,17 +243,11 @@ export default function Header() {
   const getRoleIcon = (role: string) => {
     switch (role) {
       case "admin":
-        return (
-          <HiOutlineShieldCheck className="w-4 h-4" />
-        );
+        return <HiOutlineShieldCheck className="w-4 h-4" />;
       case "garage_owner":
-        return (
-          <HiOutlineBuildingOffice className="w-4 h-4" />
-        );
-      default:
-        return (
-          <HiOutlineUser className="w-4 h-4" />
-        );
+        return <HiOutlineBuildingOffice className="w-4 h-4" />;
+      default: // user
+        return <HiOutlineUser className="w-4 h-4" />;
     }
   };
 
@@ -283,7 +258,7 @@ export default function Header() {
       case "admin":
         return "Admin";
       default:
-        return "Customer";
+        return "User";
     }
   };
 
@@ -390,7 +365,7 @@ export default function Header() {
           },
         ];
 
-      default: // customer
+      default: // user
         return [
           {
             label: "Dashboard",
@@ -459,7 +434,7 @@ export default function Header() {
       };
     }
 
-    // Customer
+    // User
     return {
       main: items.slice(0, 1),
       bookings: items.slice(1, 5),
@@ -481,18 +456,10 @@ export default function Header() {
       <div className="mx-auto px-4 md:px-6 lg:px-8 max-w-7xl">
         <div className="flex h-20 items-center justify-between">
           {/* Logo */}
-          <Link
-            href="/"
-            className="relative flex items-center gap-3 cursor-pointer group"
-          >
-            <div className="relative">
-              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3" />
-              <div className="absolute inset-0 h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 blur-lg opacity-50 group-hover:opacity-75 transition-opacity" />
-              <HiOutlineSparkles className="absolute -top-1 -right-1 w-4 h-4 text-yellow-400 animate-pulse" />
-            </div>
+          <Link href="/" className="relative flex items-center cursor-pointer group">
             <div className="flex flex-col">
-              <span className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500">
-                SCRG
+              <span className="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
+                Smart Garage
               </span>
               <span className="text-[10px] font-medium text-gray-500 -mt-1">
                 Premium Car Care
@@ -551,10 +518,7 @@ export default function Header() {
           {/* User Menu / CTA - Desktop */}
           <div className="hidden md:flex items-center gap-4">
             {isAuthenticated && user ? (
-              <div
-                className="relative"
-                ref={userMenuRef}
-              >
+              <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-gray-200 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-100 transition-all duration-300 group"
@@ -603,7 +567,7 @@ export default function Header() {
                       transition={{ duration: 0.2 }}
                       className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50"
                     >
-                      {/* User info header */}
+                      {/* User info header with quick dashboard link */}
                       <div className="px-4 py-4 border-b border-gray-100 bg-gradient-to-r from-indigo-50/50 to-purple-50/50">
                         <div className="flex items-center gap-3">
                           <div className="relative">
@@ -632,21 +596,68 @@ export default function Header() {
                             <p className="text-xs text-gray-500 truncate">
                               {user.email}
                             </p>
-                            <span
-                              className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 text-xs rounded-full border ${getRoleBadgeColor(user.role)}`}
-                            >
-                              {getRoleIcon(user.role)}
-                              {getRoleDisplayName(user.role)}
-                            </span>
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border ${getRoleBadgeColor(
+                                  user.role
+                                )}`}
+                              >
+                                {getRoleIcon(user.role)}
+                                {getRoleDisplayName(user.role)}
+                              </span>
+
+                              {/* Quick Dashboard Link */}
+                              <Link
+                                href={getDashboardLink()}
+                                onClick={() => setUserMenuOpen(false)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-indigo-100 text-indigo-700 rounded-full hover:bg-indigo-200 transition-colors"
+                              >
+                                <HiOutlineChartBar className="w-3 h-3" />
+                                Dashboard
+                              </Link>
+                            </div>
                           </div>
                         </div>
-                        
+
                         {/* Quick stats for garage owners */}
                         {user.role === "garage_owner" && user.garageName && (
                           <div className="mt-3 pt-3 border-t border-gray-200">
                             <p className="text-xs text-gray-500">
-                              <span className="font-medium text-gray-700">Garage:</span> {user.garageName}
+                              <span className="font-medium text-gray-700">Garage:</span>{" "}
+                              {user.garageName}
                             </p>
+                          </div>
+                        )}
+
+                        {/* Quick stats for regular users */}
+                        {user.role !== "admin" && user.role !== "garage_owner" && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <div className="flex items-center justify-between text-xs">
+                              <div className="text-gray-500">
+                                <span className="font-medium text-gray-700">Member since:</span>{" "}
+                                {new Date().toLocaleDateString()}
+                              </div>
+                              <div className="text-gray-500">
+                                <span className="font-medium text-gray-700">Status:</span>{" "}
+                                <span className="text-emerald-600">Active</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Quick stats for admin */}
+                        {user.role === "admin" && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <div className="flex items-center justify-between text-xs">
+                              <div className="text-gray-500">
+                                <span className="font-medium text-gray-700">Admin since:</span>{" "}
+                                {new Date().toLocaleDateString()}
+                              </div>
+                              <div className="text-gray-500">
+                                <span className="font-medium text-gray-700">Access:</span>{" "}
+                                <span className="text-purple-600">Full System</span>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -655,11 +666,22 @@ export default function Header() {
                       <div className="py-2 max-h-96 overflow-y-auto">
                         {user?.role === "admin" && (
                           <>
-                            <DashboardSection
-                              title="Main"
-                              items={getDashboardSections().main}
-                              setUserMenuOpen={setUserMenuOpen}
-                            />
+                            {/* Main Dashboard Section */}
+                            <div className="px-4 py-2">
+                              <Link
+                                href="/admin/dashboard"
+                                onClick={() => setUserMenuOpen(false)}
+                                className="flex items-center gap-3 p-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200"
+                              >
+                                <HiOutlineChartBar className="w-5 h-5" />
+                                <div className="flex flex-col">
+                                  <span className="font-semibold">Admin Dashboard</span>
+                                  <span className="text-xs text-indigo-100">
+                                    Platform overview & analytics
+                                  </span>
+                                </div>
+                              </Link>
+                            </div>
                             <DashboardSection
                               title="Management"
                               items={getDashboardSections().management}
@@ -675,11 +697,22 @@ export default function Header() {
 
                         {user?.role === "garage_owner" && (
                           <>
-                            <DashboardSection
-                              title="Main"
-                              items={getDashboardSections().main}
-                              setUserMenuOpen={setUserMenuOpen}
-                            />
+                            {/* Main Dashboard Section */}
+                            <div className="px-4 py-2">
+                              <Link
+                                href="/owner/dashboard"
+                                onClick={() => setUserMenuOpen(false)}
+                                className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+                              >
+                                <HiOutlineChartBar className="w-5 h-5" />
+                                <div className="flex flex-col">
+                                  <span className="font-semibold">Owner Dashboard</span>
+                                  <span className="text-xs text-blue-100">
+                                    Garage performance & metrics
+                                  </span>
+                                </div>
+                              </Link>
+                            </div>
                             <DashboardSection
                               title="Garage"
                               items={getDashboardSections().garage}
@@ -698,13 +731,24 @@ export default function Header() {
                           </>
                         )}
 
-                        {user?.role === "customer" && (
+                        {user?.role !== "admin" && user?.role !== "garage_owner" && (
                           <>
-                            <DashboardSection
-                              title="Main"
-                              items={getDashboardSections().main}
-                              setUserMenuOpen={setUserMenuOpen}
-                            />
+                            {/* Main Dashboard Section */}
+                            <div className="px-4 py-2">
+                              <Link
+                                href="/dashboard"
+                                onClick={() => setUserMenuOpen(false)}
+                                className="flex items-center gap-3 p-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 transition-all duration-200"
+                              >
+                                <HiOutlineChartBar className="w-5 h-5" />
+                                <div className="flex flex-col">
+                                  <span className="font-semibold">My Dashboard</span>
+                                  <span className="text-xs text-emerald-100">
+                                    Your personal overview
+                                  </span>
+                                </div>
+                              </Link>
+                            </div>
                             <DashboardSection
                               title="My Bookings"
                               items={getDashboardSections().bookings}
@@ -715,6 +759,26 @@ export default function Header() {
                               items={getDashboardSections().account}
                               setUserMenuOpen={setUserMenuOpen}
                             />
+
+                            {/* Additional user-only quick links */}
+                            <div className="mt-2 pt-2 border-t border-gray-100">
+                              <Link
+                                href="/support"
+                                onClick={() => setUserMenuOpen(false)}
+                                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-all duration-200 rounded-lg"
+                              >
+                                <span className="text-lg text-gray-400">🛟</span>
+                                <span>Help & Support</span>
+                              </Link>
+                              <Link
+                                href="/rewards"
+                                onClick={() => setUserMenuOpen(false)}
+                                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-all duration-200 rounded-lg"
+                              >
+                                <span className="text-lg text-gray-400">🎁</span>
+                                <span>Rewards & Loyalty</span>
+                              </Link>
+                            </div>
                           </>
                         )}
                       </div>
@@ -726,9 +790,7 @@ export default function Header() {
                           className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-all duration-200 group"
                         >
                           <HiOutlineLogout className="text-lg text-red-400 group-hover:text-red-600" />
-                          <span className="font-medium">
-                            Sign Out
-                          </span>
+                          <span className="font-medium">Sign Out</span>
                         </button>
                       </div>
                     </motion.div>
@@ -738,7 +800,7 @@ export default function Header() {
             ) : (
               <>
                 <Link
-                  href="/partner"
+                  href="/register"
                   className="group relative px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 overflow-hidden"
                 >
                   <span className="relative z-10 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 group-hover:text-white transition-colors duration-300">
@@ -834,14 +896,12 @@ export default function Header() {
                       <span className="absolute bottom-0 right-0 h-3 w-3 bg-emerald-500 rounded-full ring-2 ring-white" />
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-900">
-                        {user.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {user.email}
-                      </p>
+                      <p className="font-semibold text-gray-900">{user.name}</p>
+                      <p className="text-xs text-gray-500">{user.email}</p>
                       <span
-                        className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 text-xs rounded-full border ${getRoleBadgeColor(user.role)}`}
+                        className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 text-xs rounded-full border ${getRoleBadgeColor(
+                          user.role
+                        )}`}
                       >
                         {getRoleIcon(user.role)}
                         {getRoleDisplayName(user.role)}
@@ -871,20 +931,14 @@ export default function Header() {
                     >
                       <span
                         className={`text-xl ${
-                          isActive(item.href)
-                            ? "text-indigo-600"
-                            : "text-gray-400"
+                          isActive(item.href) ? "text-indigo-600" : "text-gray-400"
                         }`}
                       >
                         {item.icon}
                       </span>
                       <div className="flex flex-col">
-                        <span className="font-medium">
-                          {item.label}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {item.description}
-                        </span>
+                        <span className="font-medium">{item.label}</span>
+                        <span className="text-xs text-gray-500">{item.description}</span>
                       </div>
                     </Link>
                   </motion.div>
@@ -945,7 +999,7 @@ export default function Header() {
                       </>
                     )}
 
-                    {user?.role === "customer" && (
+                    {user?.role !== "admin" && user?.role !== "garage_owner" && (
                       <>
                         <MobileSection
                           title="Main"
@@ -986,7 +1040,7 @@ export default function Header() {
                 ) : (
                   <>
                     <Link
-                      href="/partner"
+                      href="/register"
                       onClick={() => setMenuOpen(false)}
                       className="text-center py-3.5 rounded-xl border-2 border-indigo-200 text-indigo-600 font-semibold hover:border-indigo-500 hover:bg-indigo-50 transition-all duration-300"
                     >

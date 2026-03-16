@@ -1,4 +1,6 @@
 export interface User {
+  profileImage: any;
+  garageName: boolean;
   id: string;
   name: string;
   email: string;

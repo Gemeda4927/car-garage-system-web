@@ -1,14 +1,40 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Premium Garaging for the African Elite",
+  title: "Premium Car Park & Services | Final Year Project",
   description:
-    "World-class car park and services for the African elite",
+    "A comprehensive car park management and service booking platform for the African elite. Final year project showcasing modern web development with Next.js.",
+  keywords: [
+    "car park", 
+    "garage services", 
+    "vehicle booking", 
+    "African elite", 
+    "final year project", 
+    "Next.js", 
+    "TypeScript",
+    "premium car care"
+  ],
+  authors: [{ name: "Your Name" }],
+  creator: "Your Name",
+  publisher: "Final Year Project",
+  openGraph: {
+    title: "Premium Car Park & Services Platform",
+    description: "Final year project - A comprehensive car park management and service booking platform",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Premium Car Park & Services",
+    description: "Final year project - Car park management platform",
+  },
+  robots: "index, follow",
 };
 
 export default function RootLayout({
@@ -32,18 +58,7 @@ export default function RootLayout({
         </main>
 
         {/* Footer */}
-        <footer className="w-full border-t border-gray-200 bg-white/90 backdrop-blur-md py-10 mt-auto">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center text-gray-500">
-            <p>
-              © {new Date().getFullYear()}{" "}
-              EliteVault. All rights reserved.
-            </p>
-            <p className="mt-2">
-              Designed with ❤️ for a premium
-              African garaging experience
-            </p>
-          </div>
-        </footer>
+        <Footer />
       </body>
     </html>
   );
