@@ -10,7 +10,6 @@ import toast, { Toaster } from "react-hot-toast";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUser } from "@/lib/hooks/useUser";
 import { useGarage } from "@/lib/hooks/useGarage";
-
 import { usePaymentStore } from "@/lib/store/payment.store";
 
 // Components
@@ -18,6 +17,8 @@ import { UserTable } from "@/components/UserTable";
 import { PaymentTable } from "@/components/PaymentTable";
 import { GarageTable } from "@/components/GarageTable";
 import ServiceTable from "@/components/ServiceTable";
+import BookingTable from "@/components/BookingTable";
+import SettingsPage from "@/components/Settings";
 
 // Icons
 import {
@@ -44,9 +45,6 @@ import {
 import { Service } from "@/lib/types/service.types";
 import { useService } from "@/lib/hooks/useService";
 import { usePaymentStoress } from "@/lib/store/payment.stores";
-import BookingTable from "@/components/BookingTable";
-import SettingsPage from "@/components/Settings";
-
 
 type TabType =
   | "overview"
@@ -139,9 +137,6 @@ export default function AdminDashboardPage() {
     verifyPayment,
   } = usePaymentStoress();
 
-
-
-
   // State
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [userView, setUserView] = useState<UserViewType>("active");
@@ -154,9 +149,6 @@ export default function AdminDashboardPage() {
   const [paymentLimit] = useState(20);
   const [selectedGarage, setSelectedGarage] = useState<string>("");
   const [priceRange, setPriceRange] = useState<{ min?: number; max?: number }>({});
-
-  // Mock bookings data (replace with actual bookings hook when available)
-  const [bookings, setBookings] = useState<Booking[]>([]);
 
   // Garage view states
   const [showDeleted, setShowDeleted] = useState(false);
@@ -903,7 +895,7 @@ export default function AdminDashboardPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center pt-20">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Loading dashboard...</p>
@@ -1004,7 +996,7 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       <Toaster
         position="top-right"
         toastOptions={{
@@ -1030,1042 +1022,1045 @@ export default function AdminDashboardPage() {
         }}
       />
 
-      {/* Sidebar */}
-      <aside className="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 shadow-lg flex flex-col">
-        <div className="p-6 text-center border-b border-gray-200">
-          <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.3 }}
+   {/* Main Content with Sidebar Layout */}
+<div className="flex pt-20">
+
+  <aside className="fixed left-0 w-64 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 shadow-lg flex flex-col overflow-y-auto">
+    
+    {/* REST OF YOUR SIDEBAR CONTENT - EXACTLY THE SAME */}
+    <div className="p-6 text-center border-b border-gray-200">
+      <motion.div
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <h1 className="text-2xl font-bold text-gray-800">
+          Admin <span className="text-indigo-600">Dashboard</span>
+        </h1>
+        <p className="text-sm text-gray-500 mt-1">Manage your platform</p>
+      </motion.div>
+    </div>
+
+    <nav className="flex-1 px-4 py-6 space-y-2">
+      {menuItems.map((item) => {
+        const isActive = activeTab === item.key;
+        const colors = getColorClasses(item.color, isActive);
+
+        return (
+          <motion.button
+            key={item.key}
+            whileHover={{ x: 5 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab(item.key)}
+            className={`flex items-center gap-3 w-full px-4 py-3 text-left text-sm font-medium rounded-lg transition-all ${
+              isActive
+                ? `${colors.bg} ${colors.text} shadow-md`
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
           >
-            <h1 className="text-2xl font-bold text-gray-800">
-              Admin <span className="text-indigo-600">Dashboard</span>
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">Manage your platform</p>
-          </motion.div>
-        </div>
-
-        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-          {menuItems.map((item) => {
-            const isActive = activeTab === item.key;
-            const colors = getColorClasses(item.color, isActive);
-
-            return (
-              <motion.button
-                key={item.key}
-                whileHover={{ x: 5 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setActiveTab(item.key)}
-                className={`flex items-center gap-3 w-full px-4 py-3 text-left text-sm font-medium rounded-lg transition-all ${
-                  isActive
-                    ? `${colors.bg} ${colors.text} shadow-md`
-                    : "text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                <item.icon className={`w-5 h-5 ${isActive ? colors.text : ""}`} />
-                <span className="flex-1">{item.label}</span>
-                {item.key === "users" && (
-                  <span className="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full text-xs">
-                    {localStats.activeUsers}
-                  </span>
-                )}
-                {item.key === "garages" && (
-                  <span className="bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-xs">
-                    {garageLocalStats.activeGarages}
-                  </span>
-                )}
-                {item.key === "services" && (
-                  <span className="bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full text-xs">
-                    {serviceStats.activeServices}
-                  </span>
-                )}
-                {item.key === "payments" && (
-                  <span className="bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full text-xs">
-                    {(payments || []).length}
-                  </span>
-                )}
-              </motion.button>
-            );
-          })}
-        </nav>
-
-        <div className="p-4 border-t border-gray-200">
-          <motion.div
-            className="flex items-center gap-3 mb-3 px-2"
-            whileHover={{ scale: 1.02 }}
-          >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-              <span className="text-lg font-semibold text-white">
-                {user.name?.charAt(0) || "A"}
+            <item.icon className={`w-5 h-5 ${isActive ? colors.text : ""}`} />
+            <span className="flex-1">{item.label}</span>
+            {item.key === "users" && (
+              <span className="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full text-xs">
+                {localStats.activeUsers}
               </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-700 truncate">{user.name}</p>
-              <p className="text-xs text-gray-500 truncate">Administrator</p>
-            </div>
-          </motion.div>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={logout}
-            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
-          >
-            <HiOutlineLogout className="w-5 h-5" /> Logout
+            )}
+            {item.key === "garages" && (
+              <span className="bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-xs">
+                {garageLocalStats.activeGarages}
+              </span>
+            )}
+            {item.key === "services" && (
+              <span className="bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full text-xs">
+                {serviceStats.activeServices}
+              </span>
+            )}
+            {item.key === "payments" && (
+              <span className="bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full text-xs">
+                {(payments || []).length}
+              </span>
+            )}
           </motion.button>
+        );
+      })}
+    </nav>
+
+    <div className="p-4 border-t border-gray-200">
+      <motion.div
+        className="flex items-center gap-3 mb-3 px-2"
+        whileHover={{ scale: 1.02 }}
+      >
+        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+          <span className="text-lg font-semibold text-white">
+            {user.name?.charAt(0) || "A"}
+          </span>
         </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="ml-64 flex-1 p-8">
-        {/* Header with Refresh */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">
-            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Management
-          </h1>
-          <motion.button
-            whileHover={{ rotate: 180 }}
-            transition={{ duration: 0.3 }}
-            onClick={handleRefresh}
-            className="p-2 text-gray-500 hover:text-indigo-600 rounded-lg hover:bg-gray-100"
-            title="Refresh data"
-          >
-            <HiOutlineRefresh className="w-5 h-5" />
-          </motion.button>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-700 truncate">{user.name}</p>
+          <p className="text-xs text-gray-500 truncate">Administrator</p>
         </div>
+      </motion.div>
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={logout}
+        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
+      >
+        <HiOutlineLogout className="w-5 h-5" /> Logout
+      </motion.button>
+    </div>
+  </aside>
 
-        <AnimatePresence mode="wait">
-          {activeTab === "overview" && (
-            <motion.div
-              key="overview"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <p className="text-gray-500 mb-8">
-                Welcome back, {user.name}! Here&apos;s an overview of your platform&apos;s activity.
-              </p>
+  {/* Main Content Area */}
+  <main className="ml-64 flex-1 p-8">
+    {/* Header with Refresh */}
+    <div className="flex justify-between items-center mb-6">
+      <h1 className="text-3xl font-bold text-gray-800">
+        {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Management
+      </h1>
+      <motion.button
+        whileHover={{ rotate: 180 }}
+        transition={{ duration: 0.3 }}
+        onClick={handleRefresh}
+        className="p-2 text-gray-500 hover:text-indigo-600 rounded-lg hover:bg-gray-100"
+        title="Refresh data"
+      >
+        <HiOutlineRefresh className="w-5 h-5" />
+      </motion.button>
+    </div>
 
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                {[
-                  {
-                    label: "Total Users",
-                    value: localStats.totalUsers,
-                    icon: HiOutlineUsers2,
-                    color: "indigo",
-                    subtext: `${localStats.garageOwners} garage owners, ${localStats.carOwners} car owners`,
-                  },
-                  {
-                    label: "Total Garages",
-                    value: garageLocalStats.totalGarages,
-                    icon: HiOutlineBuildingOffice,
-                    color: "green",
-                    subtext: `${garageLocalStats.activeGarages} active, ${garageLocalStats.deletedGarages} deleted`,
-                  },
-                  {
-                    label: "Total Services",
-                    value: serviceStats.totalServices,
-                    icon: HiOutlineWrench,
-                    color: "orange",
-                    subtext: `${serviceStats.availableServices} available`,
-                  },
-                  {
-                    label: "Total Revenue",
-                    value: `$${totalRevenue.toLocaleString()}`,
-                    icon: HiOutlineCurrencyDollar,
-                    color: "yellow",
-                    subtext: `${completedPayments.length} completed payments`,
-                  },
-                ].map((stat, index) => (
-                  <motion.div
-                    key={stat.label}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    whileHover={{
-                      scale: 1.02,
-                      boxShadow: "0 10px 30px -10px rgba(0,0,0,0.1)",
-                    }}
-                    className="bg-white p-6 rounded-xl shadow-sm border border-gray-100"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">{stat.label}</p>
-                        <p className="text-2xl font-bold text-gray-800">{stat.value}</p>
-                        <p className="text-xs text-gray-400 mt-1">{stat.subtext}</p>
-                      </div>
-                      <div className={`p-3 bg-${stat.color}-100 rounded-lg`}>
-                        <stat.icon className={`w-6 h-6 text-${stat.color}-600`} />
-                      </div>
-                    </div>
-                  </motion.div>
+    <AnimatePresence mode="wait">
+      {activeTab === "overview" && (
+        <motion.div
+          key="overview"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+        >
+          <p className="text-gray-500 mb-8">
+            Welcome back, {user.name}! Here&apos;s an overview of your platform&apos;s activity.
+          </p>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            {[
+              {
+                label: "Total Users",
+                value: localStats.totalUsers,
+                icon: HiOutlineUsers2,
+                color: "indigo",
+                subtext: `${localStats.garageOwners} garage owners, ${localStats.carOwners} car owners`,
+              },
+              {
+                label: "Total Garages",
+                value: garageLocalStats.totalGarages,
+                icon: HiOutlineBuildingOffice,
+                color: "green",
+                subtext: `${garageLocalStats.activeGarages} active, ${garageLocalStats.deletedGarages} deleted`,
+              },
+              {
+                label: "Total Services",
+                value: serviceStats.totalServices,
+                icon: HiOutlineWrench,
+                color: "orange",
+                subtext: `${serviceStats.availableServices} available`,
+              },
+              {
+                label: "Total Revenue",
+                value: `$${totalRevenue.toLocaleString()}`,
+                icon: HiOutlineCurrencyDollar,
+                color: "yellow",
+                subtext: `${completedPayments.length} completed payments`,
+              },
+            ].map((stat, index) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{
+                  scale: 1.02,
+                  boxShadow: "0 10px 30px -10px rgba(0,0,0,0.1)",
+                }}
+                className="bg-white p-6 rounded-xl shadow-sm border border-gray-100"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500">{stat.label}</p>
+                    <p className="text-2xl font-bold text-gray-800">{stat.value}</p>
+                    <p className="text-xs text-gray-400 mt-1">{stat.subtext}</p>
+                  </div>
+                  <div className={`p-3 bg-${stat.color}-100 rounded-lg`}>
+                    <stat.icon className={`w-6 h-6 text-${stat.color}-600`} />
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Category Stats */}
+          {categoryStats && categoryStats.length > 0 && (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Services by Category</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {categoryStats.map((stat) => (
+                  <div key={stat._id} className="p-4 bg-orange-50 rounded-lg">
+                    <p className="text-sm text-orange-600 capitalize">{stat._id}</p>
+                    <p className="text-2xl font-bold text-gray-800">{stat.count}</p>
+                    <p className="text-xs text-gray-500">
+                      ${stat.minPrice} - ${stat.maxPrice}
+                    </p>
+                  </div>
                 ))}
               </div>
+            </div>
+          )}
 
-              {/* Category Stats */}
-              {categoryStats && categoryStats.length > 0 && (
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Services by Category</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {categoryStats.map((stat) => (
-                      <div key={stat._id} className="p-4 bg-orange-50 rounded-lg">
-                        <p className="text-sm text-orange-600 capitalize">{stat._id}</p>
-                        <p className="text-2xl font-bold text-gray-800">{stat.count}</p>
-                        <p className="text-xs text-gray-500">
-                          ${stat.minPrice} - ${stat.maxPrice}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Recent Users */}
-              {localStats.recentUsers && localStats.recentUsers.length > 0 && (
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Users</h3>
-                  <div className="space-y-3">
-                    {localStats.recentUsers.map((user) => (
-                      <div
-                        key={user._id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                            <span className="text-sm font-semibold text-indigo-600">
-                              {user.name.charAt(0)}
-                            </span>
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm truncate">{user.name}</p>
-                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              user.role === "garage_owner"
-                                ? "bg-purple-100 text-purple-800"
-                                : "bg-blue-100 text-blue-800"
-                            }`}
-                          >
-                            {user.role === "garage_owner" ? "Garage Owner" : "Car Owner"}
-                          </span>
-                          {user.canCreateGarage && (
-                            <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                              Can Create
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Recent Garages */}
-              {garages && garages.length > 0 && (
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800">Recent Garages</h3>
-                    <button
-                      onClick={() => setActiveTab("garages")}
-                      className="text-sm text-indigo-600 hover:text-indigo-800"
-                    >
-                      View All →
-                    </button>
-                  </div>
-                  <div className="space-y-3">
-                    {garages.slice(0, 5).map((garage) => (
-                      <div
-                        key={garage._id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineBuildingOffice className="w-4 h-4 text-green-600" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm truncate">{garage.name}</p>
-                            <p className="text-xs text-gray-500 truncate">
-                              {garage.address?.street || "No address"} • Owner:{" "}
-                              {garage.owner?.name || "Unknown"}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs flex-shrink-0">
-                          Active
+          {/* Recent Users */}
+          {localStats.recentUsers && localStats.recentUsers.length > 0 && (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Users</h3>
+              <div className="space-y-3">
+                {localStats.recentUsers.map((user) => (
+                  <div
+                    key={user._id}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm font-semibold text-indigo-600">
+                          {user.name.charAt(0)}
                         </span>
                       </div>
-                    ))}
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{user.name}</p>
+                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          user.role === "garage_owner"
+                            ? "bg-purple-100 text-purple-800"
+                            : "bg-blue-100 text-blue-800"
+                        }`}
+                      >
+                        {user.role === "garage_owner" ? "Garage Owner" : "Car Owner"}
+                      </span>
+                      {user.canCreateGarage && (
+                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                          Can Create
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
+            </div>
+          )}
 
-              {/* Recent Services */}
-              {services && services.filter(s => s.isAvailable !== false).length > 0 && (
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800">Recent Services</h3>
-                    <button
-                      onClick={() => setActiveTab("services")}
-                      className="text-sm text-indigo-600 hover:text-indigo-800"
-                    >
-                      View All →
-                    </button>
+          {/* Recent Garages */}
+          {garages && garages.length > 0 && (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">Recent Garages</h3>
+                <button
+                  onClick={() => setActiveTab("garages")}
+                  className="text-sm text-indigo-600 hover:text-indigo-800"
+                >
+                  View All →
+                </button>
+              </div>
+              <div className="space-y-3">
+                {garages.slice(0, 5).map((garage) => (
+                  <div
+                    key={garage._id}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                        <HiOutlineBuildingOffice className="w-4 h-4 text-green-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{garage.name}</p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {garage.address?.street || "No address"} • Owner:{" "}
+                          {garage.owner?.name || "Unknown"}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs flex-shrink-0">
+                      Active
+                    </span>
                   </div>
-                  <div className="space-y-3">
-                    {services
-                      .filter(s => s.isAvailable !== false)
-                      .slice(0, 5)
-                      .map((service) => (
-                        <div
-                          key={service._id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-                              <HiOutlineWrench className="w-4 h-4 text-orange-600" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-medium text-sm truncate">{service.name}</p>
-                              <p className="text-xs text-gray-500 truncate">
-                                {service.category} • ${service.price}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {service.isAvailable ? (
-                              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                                Available
-                              </span>
-                            ) : (
-                              <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">
-                                Unavailable
-                              </span>
-                            )}
-                          </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recent Services */}
+          {services && services.filter(s => s.isAvailable !== false).length > 0 && (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">Recent Services</h3>
+                <button
+                  onClick={() => setActiveTab("services")}
+                  className="text-sm text-indigo-600 hover:text-indigo-800"
+                >
+                  View All →
+                </button>
+              </div>
+              <div className="space-y-3">
+                {services
+                  .filter(s => s.isAvailable !== false)
+                  .slice(0, 5)
+                  .map((service) => (
+                    <div
+                      key={service._id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                          <HiOutlineWrench className="w-4 h-4 text-orange-600" />
                         </div>
-                      ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Recent Payments */}
-              {payments && payments.length > 0 && (
-                <div className="mt-8">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800">Recent Payments</h3>
-                    <button
-                      onClick={() => setActiveTab("payments")}
-                      className="text-sm text-indigo-600 hover:text-indigo-800"
-                    >
-                      View All →
-                    </button>
-                  </div>
-                  <PaymentTable
-                    payments={payments.slice(0, 5)}
-                    loading={paymentsLoading}
-                    error={paymentsError}
-                    onViewDetails={handleViewPaymentDetails}
-                    onVerify={handleVerifyPayment}
-                    onRefund={handleRefundPayment}
-                  />
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {activeTab === "users" && (
-            <motion.div
-              key="users"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">User Management</h2>
-
-                {/* View Toggle */}
-                <div className="flex gap-2 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setUserView("active")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      userView === "active"
-                        ? "bg-indigo-600 text-white"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    <HiOutlineUsers className="w-4 h-4" />
-                    Active ({users.length})
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setUserView("deleted")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      userView === "deleted"
-                        ? "bg-red-600 text-white"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    <HiOutlineTrash className="w-4 h-4" />
-                    Trash ({deletedUsers.length})
-                  </motion.button>
-                </div>
-              </div>
-
-              {/* Search and Actions Bar */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                <div className="flex-1 relative">
-                  <HiOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder={`Search ${userView} users by name or email...`}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleRefresh}
-                    className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
-                    title="Refresh"
-                  >
-                    <HiOutlineRefresh className="w-4 h-4" />
-                    <span className="hidden sm:inline">Refresh</span>
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleExportUserData}
-                    className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
-                    title="Export to CSV"
-                  >
-                    <HiOutlineDownload className="w-4 h-4" />
-                    <span className="hidden sm:inline">Export</span>
-                  </motion.button>
-
-                  {userView === "deleted" && deletedUsers.length > 0 && (
-                    <>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleBulkRestoreUsers}
-                        className="flex items-center gap-2 px-4 py-2 text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100"
-                        title="Restore all"
-                      >
-                        <HiOutlineRefresh className="w-4 h-4" />
-                        <span className="hidden sm:inline">Restore All</span>
-                      </motion.button>
-
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleEmptyUserTrash}
-                        className="flex items-center gap-2 px-4 py-2 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100"
-                        title="Empty trash"
-                      >
-                        <HiOutlineTrash className="w-4 h-4" />
-                        <span className="hidden sm:inline">Empty Trash</span>
-                      </motion.button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* User Table */}
-              <UserTable
-                users={filteredUsers}
-                loading={usersLoading}
-                error={usersError}
-                showDeleted={userView === "deleted"}
-                onRestore={handleRestoreUserFromTrash}
-                onPermanentDelete={handlePermanentDeleteUser}
-              />
-
-              {/* Pagination */}
-              {userView === "active" && pagination && pagination.pages > 1 && (
-                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-sm text-gray-500">
-                    Showing {(pagination.page - 1) * pagination.limit + 1} -{" "}
-                    {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-                    {pagination.total} users
-                  </p>
-                  <div className="flex gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleUserPageChange(pagination.page - 1)}
-                      disabled={pagination.page === 1}
-                      className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                    >
-                      Previous
-                    </motion.button>
-                    <span className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                      Page {pagination.page} of {pagination.pages}
-                    </span>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleUserPageChange(pagination.page + 1)}
-                      disabled={pagination.page === pagination.pages}
-                      className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                    >
-                      Next
-                    </motion.button>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {activeTab === "garages" && (
-            <motion.div
-              key="garages"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Garage Management</h2>
-
-                {/* View Toggle */}
-                <div className="flex gap-2 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setGarageView("active")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      garageView === "active"
-                        ? "bg-green-600 text-white"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    <HiOutlineBuildingOffice className="w-4 h-4" />
-                    Active ({garages?.length || 0})
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setGarageView("deleted")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      garageView === "deleted"
-                        ? "bg-red-600 text-white"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    <HiOutlineTrash className="w-4 h-4" />
-                    Trash ({deletedGarages?.length || 0})
-                  </motion.button>
-                </div>
-              </div>
-
-              {/* Search and Actions Bar */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                <div className="flex-1 relative">
-                  <HiOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder={`Search ${garageView} garages by name, address, or owner...`}
-                    value={garageSearchTerm}
-                    onChange={(e) => setGarageSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleRefresh}
-                    className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
-                    title="Refresh"
-                  >
-                    <HiOutlineRefresh className="w-4 h-4" />
-                    <span className="hidden sm:inline">Refresh</span>
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleExportGarageData}
-                    className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
-                    title="Export to CSV"
-                  >
-                    <HiOutlineDownload className="w-4 h-4" />
-                    <span className="hidden sm:inline">Export</span>
-                  </motion.button>
-
-                  {garageView === "deleted" && deletedGarages?.length > 0 && (
-                    <>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleBulkRestoreGarages}
-                        className="flex items-center gap-2 px-4 py-2 text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100"
-                        title="Restore all"
-                      >
-                        <HiOutlineRefresh className="w-4 h-4" />
-                        <span className="hidden sm:inline">Restore All</span>
-                      </motion.button>
-
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleEmptyGarageTrash}
-                        className="flex items-center gap-2 px-4 py-2 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100"
-                        title="Empty trash"
-                      >
-                        <HiOutlineTrash className="w-4 h-4" />
-                        <span className="hidden sm:inline">Empty Trash</span>
-                      </motion.button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Garage Table */}
-              <GarageTable
-                garages={filteredGarages}
-                loading={garagesLoading}
-                error={garagesError}
-                showDeleted={garageView === "deleted"}
-                showUnverified={showUnverified}
-                showComplete={showComplete}
-                onViewChange={handleViewChange}
-                onRestore={handleRestoreGarageFromTrash}
-                onPermanentDelete={handlePermanentDeleteGarage}
-                onViewDetails={(garage) => {
-                  toast.success(`Viewing garage: ${garage.name}`);
-                  console.log("Garage details:", garage);
-                }}
-              />
-
-              {/* Pagination */}
-              {garageView === "active" && garagePagination && garagePagination.pages > 1 && (
-                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-sm text-gray-500">
-                    Showing {(garagePagination.page - 1) * garagePagination.limit + 1} -{" "}
-                    {Math.min(garagePagination.page * garagePagination.limit, garagePagination.total)} of{" "}
-                    {garagePagination.total} garages
-                  </p>
-                  <div className="flex gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleGaragePageChange(garagePagination.page - 1)}
-                      disabled={garagePagination.page === 1}
-                      className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                    >
-                      Previous
-                    </motion.button>
-                    <span className="px-4 py-2 bg-green-50 text-green-600 rounded-lg">
-                      Page {garagePagination.page} of {garagePagination.pages}
-                    </span>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleGaragePageChange(garagePagination.page + 1)}
-                      disabled={garagePagination.page === garagePagination.pages}
-                      className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                    >
-                      Next
-                    </motion.button>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {activeTab === "services" && (
-            <motion.div
-              key="services"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Service Management</h2>
-
-                {/* View Toggle */}
-                <div className="flex gap-2 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setServiceView("active")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      serviceView === "active"
-                        ? "bg-orange-600 text-white"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    <HiOutlineWrench className="w-4 h-4" />
-                    Active ({services.filter(s => s.isAvailable !== false).length})
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setServiceView("deleted")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      serviceView === "deleted"
-                        ? "bg-red-600 text-white"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    <HiOutlineTrash className="w-4 h-4" />
-                    Trash ({services.filter(s => s.isAvailable === false).length})
-                  </motion.button>
-                </div>
-              </div>
-
-              {/* Category Stats */}
-              {categoryStats && categoryStats.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                  {categoryStats.map((stat) => (
-                    <div key={stat._id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                      <p className="text-sm text-orange-600 capitalize">{stat._id}</p>
-                      <p className="text-2xl font-bold text-gray-800">{stat.count}</p>
-                      <div className="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>Min: ${stat.minPrice}</span>
-                        <span>Max: ${stat.maxPrice}</span>
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{service.name}</p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {service.category} • ${service.price}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {service.isAvailable ? (
+                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                            Available
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">
+                            Unavailable
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
-
-              {/* Service Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                  <p className="text-sm text-gray-500">Total Services</p>
-                  <p className="text-2xl font-bold text-gray-800">{serviceStats.totalServices}</p>
-                </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                  <p className="text-sm text-gray-500">Active Services</p>
-                  <p className="text-2xl font-bold text-green-600">{serviceStats.activeServices}</p>
-                </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                  <p className="text-sm text-gray-500">Available</p>
-                  <p className="text-2xl font-bold text-green-600">{serviceStats.availableServices}</p>
-                </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                  <p className="text-sm text-gray-500">Avg Price</p>
-                  <p className="text-2xl font-bold text-gray-800">${serviceStats.avgPrice.toFixed(2)}</p>
-                </div>
               </div>
-
-              {/* Filter Bar */}
-              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  {/* Search */}
-                  <div className="flex-1 relative">
-                    <HiOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Search services by name..."
-                      value={serviceSearchTerm}
-                      onChange={(e) => setServiceSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-
-                  {/* Garage Filter */}
-                  <select
-                    value={selectedGarage}
-                    onChange={(e) => setSelectedGarage(e.target.value)}
-                    className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="">All Garages</option>
-                    {garages?.map((garage) => (
-                      <option key={garage._id} value={garage._id}>{garage.name}</option>
-                    ))}
-                  </select>
-
-                  {/* Price Range */}
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      placeholder="Min $"
-                      value={priceRange.min || ''}
-                      onChange={(e) => setPriceRange(prev => ({ ...prev, min: e.target.value ? Number(e.target.value) : undefined }))}
-                      className="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Max $"
-                      value={priceRange.max || ''}
-                      onChange={(e) => setPriceRange(prev => ({ ...prev, max: e.target.value ? Number(e.target.value) : undefined }))}
-                      className="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-
-                  {/* Clear Filters */}
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleClearFilters}
-                    className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
-                  >
-                    Clear
-                  </motion.button>
-                </div>
-              </div>
-
-              {/* Actions Bar */}
-              <div className="flex justify-end gap-2 mb-6">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleRefresh}
-                  className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
-                  title="Refresh"
-                >
-                  <HiOutlineRefresh className="w-4 h-4" />
-                  <span className="hidden sm:inline">Refresh</span>
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleExportServiceData}
-                  className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
-                  title="Export to CSV"
-                >
-                  <HiOutlineDownload className="w-4 h-4" />
-                  <span className="hidden sm:inline">Export</span>
-                </motion.button>
-
-                {serviceView === "deleted" && services.filter(s => !s.isAvailable).length > 0 && (
-                  <>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleBulkRestoreServices}
-                      className="flex items-center gap-2 px-4 py-2 text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100"
-                      title="Restore all"
-                    >
-                      <HiOutlineRefresh className="w-4 h-4" />
-                      <span className="hidden sm:inline">Restore All</span>
-                    </motion.button>
-
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleEmptyServiceTrash}
-                      className="flex items-center gap-2 px-4 py-2 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100"
-                      title="Empty trash"
-                    >
-                      <HiOutlineTrash className="w-4 h-4" />
-                      <span className="hidden sm:inline">Empty Trash</span>
-                    </motion.button>
-                  </>
-                )}
-              </div>
-
-              {/* Service Table */}
-              <ServiceTable
-                services={filteredServices}
-                categoryStats={categoryStats}
-                pagination={servicePagination}
-                loading={servicesLoading}
-                error={servicesError}
-                showDeleted={serviceView === "deleted"}
-                onEdit={handleEditService}
-                onDelete={handleDeleteService}
-                onRestore={handleRestoreService}
-                onPermanentDelete={handlePermanentDeleteService}
-                onToggleAvailability={handleToggleAvailability}
-                onViewDetails={handleViewServiceDetails}
-                onPageChange={handleServicePageChange}
-                onRetry={() => fetchServices(serviceFilters)}
-              />
-
-              {/* Pagination */}
-              {servicePagination && servicePagination.pages > 1 && (
-                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-sm text-gray-500">
-                    Showing {(servicePagination.page - 1) * servicePagination.limit + 1} -{" "}
-                    {Math.min(servicePagination.page * servicePagination.limit, servicePagination.total)} of{" "}
-                    {servicePagination.total} services
-                  </p>
-                  <div className="flex gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleServicePageChange(servicePagination.page - 1)}
-                      disabled={servicePagination.page === 1}
-                      className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                    >
-                      Previous
-                    </motion.button>
-                    <span className="px-4 py-2 bg-orange-50 text-orange-600 rounded-lg">
-                      Page {servicePagination.page} of {servicePagination.pages}
-                    </span>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleServicePageChange(servicePagination.page + 1)}
-                      disabled={servicePagination.page === servicePagination.pages}
-                      className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                    >
-                      Next
-                    </motion.button>
-                  </div>
-                </div>
-              )}
-            </motion.div>
+            </div>
           )}
 
-          {activeTab === "payments" && (
-            <motion.div
-              key="payments"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              {/* Payment Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                {[
-                  {
-                    label: "Total Payments",
-                    value: payments.length,
-                    icon: HiOutlineCreditCard,
-                    color: "pink",
-                  },
-                  {
-                    label: "Total Revenue",
-                    value: `$${totalRevenue.toLocaleString()}`,
-                    icon: HiOutlineCurrencyDollar,
-                    color: "green",
-                  },
-                  {
-                    label: "Completed",
-                    value: completedPayments.length,
-                    icon: HiOutlineCheckCircle,
-                    color: "green",
-                  },
-                  {
-                    label: "Pending",
-                    value: pendingPayments.length,
-                    icon: HiOutlineClock,
-                    color: "yellow",
-                  },
-                ].map((stat, index) => (
-                  <motion.div
-                    key={stat.label}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    whileHover={{
-                      scale: 1.02,
-                      boxShadow: "0 10px 30px -10px rgba(0,0,0,0.1)",
-                    }}
-                    className="bg-white p-6 rounded-xl shadow-sm border border-gray-100"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">{stat.label}</p>
-                        <p className="text-2xl font-bold text-gray-800">{stat.value}</p>
-                      </div>
-                      <div className={`p-3 bg-${stat.color}-100 rounded-lg`}>
-                        <stat.icon className={`w-6 h-6 text-${stat.color}-600`} />
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+          {/* Recent Payments */}
+          {payments && payments.length > 0 && (
+            <div className="mt-8">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">Recent Payments</h3>
+                <button
+                  onClick={() => setActiveTab("payments")}
+                  className="text-sm text-indigo-600 hover:text-indigo-800"
+                >
+                  View All →
+                </button>
               </div>
-
-              {/* Payment Table */}
               <PaymentTable
-                payments={payments}
+                payments={payments.slice(0, 5)}
                 loading={paymentsLoading}
                 error={paymentsError}
                 onViewDetails={handleViewPaymentDetails}
                 onVerify={handleVerifyPayment}
                 onRefund={handleRefundPayment}
               />
+            </div>
+          )}
+        </motion.div>
+      )}
 
-              {/* Pagination */}
-              {paymentPagination && paymentPagination.pages > 1 && (
-                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-sm text-gray-500">
-                    Showing {(paymentPagination.page - 1) * paymentPagination.limit + 1} -{" "}
-                    {Math.min(paymentPagination.page * paymentPagination.limit, paymentPagination.total)} of{" "}
-                    {paymentPagination.total} payments
-                  </p>
-                  <div className="flex gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handlePaymentPageChange(paymentPagination.page - 1)}
-                      disabled={paymentPagination.page === 1}
-                      className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                    >
-                      Previous
-                    </motion.button>
-                    <span className="px-4 py-2 bg-pink-50 text-pink-600 rounded-lg">
-                      Page {paymentPagination.page} of {paymentPagination.pages}
-                    </span>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handlePaymentPageChange(paymentPagination.page + 1)}
-                      disabled={paymentPagination.page === paymentPagination.pages}
-                      className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                    >
-                      Next
-                    </motion.button>
+      {activeTab === "users" && (
+        <motion.div
+          key="users"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">User Management</h2>
+
+            {/* View Toggle */}
+            <div className="flex gap-2 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setUserView("active")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  userView === "active"
+                    ? "bg-indigo-600 text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <HiOutlineUsers className="w-4 h-4" />
+                Active ({users.length})
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setUserView("deleted")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  userView === "deleted"
+                    ? "bg-red-600 text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <HiOutlineTrash className="w-4 h-4" />
+                Trash ({deletedUsers.length})
+              </motion.button>
+            </div>
+          </div>
+
+          {/* Search and Actions Bar */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex-1 relative">
+              <HiOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder={`Search ${userView} users by name or email...`}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleRefresh}
+                className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                title="Refresh"
+              >
+                <HiOutlineRefresh className="w-4 h-4" />
+                <span className="hidden sm:inline">Refresh</span>
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleExportUserData}
+                className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                title="Export to CSV"
+              >
+                <HiOutlineDownload className="w-4 h-4" />
+                <span className="hidden sm:inline">Export</span>
+              </motion.button>
+
+              {userView === "deleted" && deletedUsers.length > 0 && (
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleBulkRestoreUsers}
+                    className="flex items-center gap-2 px-4 py-2 text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100"
+                    title="Restore all"
+                  >
+                    <HiOutlineRefresh className="w-4 h-4" />
+                    <span className="hidden sm:inline">Restore All</span>
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleEmptyUserTrash}
+                    className="flex items-center gap-2 px-4 py-2 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100"
+                    title="Empty trash"
+                  >
+                    <HiOutlineTrash className="w-4 h-4" />
+                    <span className="hidden sm:inline">Empty Trash</span>
+                  </motion.button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* User Table */}
+          <UserTable
+            users={filteredUsers}
+            loading={usersLoading}
+            error={usersError}
+            showDeleted={userView === "deleted"}
+            onRestore={handleRestoreUserFromTrash}
+            onPermanentDelete={handlePermanentDeleteUser}
+          />
+
+          {/* Pagination */}
+          {userView === "active" && pagination && pagination.pages > 1 && (
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-gray-500">
+                Showing {(pagination.page - 1) * pagination.limit + 1} -{" "}
+                {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
+                {pagination.total} users
+              </p>
+              <div className="flex gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleUserPageChange(pagination.page - 1)}
+                  disabled={pagination.page === 1}
+                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Previous
+                </motion.button>
+                <span className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                  Page {pagination.page} of {pagination.pages}
+                </span>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleUserPageChange(pagination.page + 1)}
+                  disabled={pagination.page === pagination.pages}
+                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Next
+                </motion.button>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {activeTab === "garages" && (
+        <motion.div
+          key="garages"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">Garage Management</h2>
+
+            {/* View Toggle */}
+            <div className="flex gap-2 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setGarageView("active")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  garageView === "active"
+                    ? "bg-green-600 text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <HiOutlineBuildingOffice className="w-4 h-4" />
+                Active ({garages?.length || 0})
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setGarageView("deleted")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  garageView === "deleted"
+                    ? "bg-red-600 text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <HiOutlineTrash className="w-4 h-4" />
+                Trash ({deletedGarages?.length || 0})
+              </motion.button>
+            </div>
+          </div>
+
+          {/* Search and Actions Bar */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex-1 relative">
+              <HiOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder={`Search ${garageView} garages by name, address, or owner...`}
+                value={garageSearchTerm}
+                onChange={(e) => setGarageSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleRefresh}
+                className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                title="Refresh"
+              >
+                <HiOutlineRefresh className="w-4 h-4" />
+                <span className="hidden sm:inline">Refresh</span>
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleExportGarageData}
+                className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                title="Export to CSV"
+              >
+                <HiOutlineDownload className="w-4 h-4" />
+                <span className="hidden sm:inline">Export</span>
+              </motion.button>
+
+              {garageView === "deleted" && deletedGarages?.length > 0 && (
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleBulkRestoreGarages}
+                    className="flex items-center gap-2 px-4 py-2 text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100"
+                    title="Restore all"
+                  >
+                    <HiOutlineRefresh className="w-4 h-4" />
+                    <span className="hidden sm:inline">Restore All</span>
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleEmptyGarageTrash}
+                    className="flex items-center gap-2 px-4 py-2 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100"
+                    title="Empty trash"
+                  >
+                    <HiOutlineTrash className="w-4 h-4" />
+                    <span className="hidden sm:inline">Empty Trash</span>
+                  </motion.button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Garage Table */}
+          <GarageTable
+            garages={filteredGarages}
+            loading={garagesLoading}
+            error={garagesError}
+            showDeleted={garageView === "deleted"}
+            showUnverified={showUnverified}
+            showComplete={showComplete}
+            onViewChange={handleViewChange}
+            onRestore={handleRestoreGarageFromTrash}
+            onPermanentDelete={handlePermanentDeleteGarage}
+            onViewDetails={(garage) => {
+              toast.success(`Viewing garage: ${garage.name}`);
+              console.log("Garage details:", garage);
+            }}
+          />
+
+          {/* Pagination */}
+          {garageView === "active" && garagePagination && garagePagination.pages > 1 && (
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-gray-500">
+                Showing {(garagePagination.page - 1) * garagePagination.limit + 1} -{" "}
+                {Math.min(garagePagination.page * garagePagination.limit, garagePagination.total)} of{" "}
+                {garagePagination.total} garages
+              </p>
+              <div className="flex gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleGaragePageChange(garagePagination.page - 1)}
+                  disabled={garagePagination.page === 1}
+                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Previous
+                </motion.button>
+                <span className="px-4 py-2 bg-green-50 text-green-600 rounded-lg">
+                  Page {garagePagination.page} of {garagePagination.pages}
+                </span>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleGaragePageChange(garagePagination.page + 1)}
+                  disabled={garagePagination.page === garagePagination.pages}
+                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Next
+                </motion.button>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {activeTab === "services" && (
+        <motion.div
+          key="services"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">Service Management</h2>
+
+            {/* View Toggle */}
+            <div className="flex gap-2 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setServiceView("active")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  serviceView === "active"
+                    ? "bg-orange-600 text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <HiOutlineWrench className="w-4 h-4" />
+                Active ({services.filter(s => s.isAvailable !== false).length})
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setServiceView("deleted")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  serviceView === "deleted"
+                    ? "bg-red-600 text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <HiOutlineTrash className="w-4 h-4" />
+                Trash ({services.filter(s => s.isAvailable === false).length})
+              </motion.button>
+            </div>
+          </div>
+
+          {/* Category Stats */}
+          {categoryStats && categoryStats.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              {categoryStats.map((stat) => (
+                <div key={stat._id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                  <p className="text-sm text-orange-600 capitalize">{stat._id}</p>
+                  <p className="text-2xl font-bold text-gray-800">{stat.count}</p>
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>Min: ${stat.minPrice}</span>
+                    <span>Max: ${stat.maxPrice}</span>
                   </div>
                 </div>
-              )}
-            </motion.div>
+              ))}
+            </div>
           )}
 
-         
+          {/* Service Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+              <p className="text-sm text-gray-500">Total Services</p>
+              <p className="text-2xl font-bold text-gray-800">{serviceStats.totalServices}</p>
+            </div>
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+              <p className="text-sm text-gray-500">Active Services</p>
+              <p className="text-2xl font-bold text-green-600">{serviceStats.activeServices}</p>
+            </div>
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+              <p className="text-sm text-gray-500">Available</p>
+              <p className="text-2xl font-bold text-green-600">{serviceStats.availableServices}</p>
+            </div>
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+              <p className="text-sm text-gray-500">Avg Price</p>
+              <p className="text-2xl font-bold text-gray-800">${serviceStats.avgPrice.toFixed(2)}</p>
+            </div>
+          </div>
 
-{/* Placeholder for other tabs */}
-{(activeTab === "bookings" || activeTab === "settings") && (
-  <motion.div
-    key={activeTab}
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.3 }}
-    className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
-  >
-    {activeTab === "bookings" && (
-      <div className="p-6">
-        <BookingTable
-          onEdit={(booking) => console.log("Edit booking:", booking)}
-          onDelete={(id) => console.log("Delete booking:", id)}
-          onStatusChange={(updatedBooking) => console.log("Status updated:", updatedBooking)}
-          showStatusFilter={true}
-          showGarageFilter={true}
-          filterParams={{ page: 1, limit: 10 }}
-        />
-      </div>
-    )}
+          {/* Filter Bar */}
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Search */}
+              <div className="flex-1 relative">
+                <HiOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search services by name..."
+                  value={serviceSearchTerm}
+                  onChange={(e) => setServiceSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
 
-    {activeTab === "settings" && (
-      <SettingsPage />
-    )}
-  </motion.div>
-)}
-        </AnimatePresence>
-      </main>
+              {/* Garage Filter */}
+              <select
+                value={selectedGarage}
+                onChange={(e) => setSelectedGarage(e.target.value)}
+                className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="">All Garages</option>
+                {garages?.map((garage) => (
+                  <option key={garage._id} value={garage._id}>{garage.name}</option>
+                ))}
+              </select>
+
+              {/* Price Range */}
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  placeholder="Min $"
+                  value={priceRange.min || ''}
+                  onChange={(e) => setPriceRange(prev => ({ ...prev, min: e.target.value ? Number(e.target.value) : undefined }))}
+                  className="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+                <input
+                  type="number"
+                  placeholder="Max $"
+                  value={priceRange.max || ''}
+                  onChange={(e) => setPriceRange(prev => ({ ...prev, max: e.target.value ? Number(e.target.value) : undefined }))}
+                  className="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              {/* Clear Filters */}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleClearFilters}
+                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Clear
+              </motion.button>
+            </div>
+          </div>
+
+          {/* Actions Bar */}
+          <div className="flex justify-end gap-2 mb-6">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleRefresh}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+              title="Refresh"
+            >
+              <HiOutlineRefresh className="w-4 h-4" />
+              <span className="hidden sm:inline">Refresh</span>
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleExportServiceData}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+              title="Export to CSV"
+            >
+              <HiOutlineDownload className="w-4 h-4" />
+              <span className="hidden sm:inline">Export</span>
+            </motion.button>
+
+            {serviceView === "deleted" && services.filter(s => !s.isAvailable).length > 0 && (
+              <>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleBulkRestoreServices}
+                  className="flex items-center gap-2 px-4 py-2 text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100"
+                  title="Restore all"
+                >
+                  <HiOutlineRefresh className="w-4 h-4" />
+                  <span className="hidden sm:inline">Restore All</span>
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleEmptyServiceTrash}
+                  className="flex items-center gap-2 px-4 py-2 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100"
+                  title="Empty trash"
+                >
+                  <HiOutlineTrash className="w-4 h-4" />
+                  <span className="hidden sm:inline">Empty Trash</span>
+                </motion.button>
+              </>
+            )}
+          </div>
+
+          {/* Service Table */}
+          <ServiceTable
+            services={filteredServices}
+            categoryStats={categoryStats}
+            pagination={servicePagination}
+            loading={servicesLoading}
+            error={servicesError}
+            showDeleted={serviceView === "deleted"}
+            onEdit={handleEditService}
+            onDelete={handleDeleteService}
+            onRestore={handleRestoreService}
+            onPermanentDelete={handlePermanentDeleteService}
+            onToggleAvailability={handleToggleAvailability}
+            onViewDetails={handleViewServiceDetails}
+            onPageChange={handleServicePageChange}
+            onRetry={() => fetchServices(serviceFilters)}
+          />
+
+          {/* Pagination */}
+          {servicePagination && servicePagination.pages > 1 && (
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-gray-500">
+                Showing {(servicePagination.page - 1) * servicePagination.limit + 1} -{" "}
+                {Math.min(servicePagination.page * servicePagination.limit, servicePagination.total)} of{" "}
+                {servicePagination.total} services
+              </p>
+              <div className="flex gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleServicePageChange(servicePagination.page - 1)}
+                  disabled={servicePagination.page === 1}
+                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Previous
+                </motion.button>
+                <span className="px-4 py-2 bg-orange-50 text-orange-600 rounded-lg">
+                  Page {servicePagination.page} of {servicePagination.pages}
+                </span>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleServicePageChange(servicePagination.page + 1)}
+                  disabled={servicePagination.page === servicePagination.pages}
+                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Next
+                </motion.button>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {activeTab === "payments" && (
+        <motion.div
+          key="payments"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+        >
+          {/* Payment Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            {[
+              {
+                label: "Total Payments",
+                value: payments.length,
+                icon: HiOutlineCreditCard,
+                color: "pink",
+              },
+              {
+                label: "Total Revenue",
+                value: `$${totalRevenue.toLocaleString()}`,
+                icon: HiOutlineCurrencyDollar,
+                color: "green",
+              },
+              {
+                label: "Completed",
+                value: completedPayments.length,
+                icon: HiOutlineCheckCircle,
+                color: "green",
+              },
+              {
+                label: "Pending",
+                value: pendingPayments.length,
+                icon: HiOutlineClock,
+                color: "yellow",
+              },
+            ].map((stat, index) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{
+                  scale: 1.02,
+                  boxShadow: "0 10px 30px -10px rgba(0,0,0,0.1)",
+                }}
+                className="bg-white p-6 rounded-xl shadow-sm border border-gray-100"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500">{stat.label}</p>
+                    <p className="text-2xl font-bold text-gray-800">{stat.value}</p>
+                  </div>
+                  <div className={`p-3 bg-${stat.color}-100 rounded-lg`}>
+                    <stat.icon className={`w-6 h-6 text-${stat.color}-600`} />
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Payment Table */}
+          <PaymentTable
+            payments={payments}
+            loading={paymentsLoading}
+            error={paymentsError}
+            onViewDetails={handleViewPaymentDetails}
+            onVerify={handleVerifyPayment}
+            onRefund={handleRefundPayment}
+          />
+
+          {/* Pagination */}
+          {paymentPagination && paymentPagination.pages > 1 && (
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-gray-500">
+                Showing {(paymentPagination.page - 1) * paymentPagination.limit + 1} -{" "}
+                {Math.min(paymentPagination.page * paymentPagination.limit, paymentPagination.total)} of{" "}
+                {paymentPagination.total} payments
+              </p>
+              <div className="flex gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handlePaymentPageChange(paymentPagination.page - 1)}
+                  disabled={paymentPagination.page === 1}
+                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Previous
+                </motion.button>
+                <span className="px-4 py-2 bg-pink-50 text-pink-600 rounded-lg">
+                  Page {paymentPagination.page} of {paymentPagination.pages}
+                </span>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handlePaymentPageChange(paymentPagination.page + 1)}
+                  disabled={paymentPagination.page === paymentPagination.pages}
+                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Next
+                </motion.button>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {/* Placeholder for other tabs */}
+      {(activeTab === "bookings" || activeTab === "settings") && (
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+        >
+          {activeTab === "bookings" && (
+            <div className="p-6">
+              <BookingTable
+                onEdit={(booking) => console.log("Edit booking:", booking)}
+                onDelete={(id) => console.log("Delete booking:", id)}
+                onStatusChange={(updatedBooking) => console.log("Status updated:", updatedBooking)}
+                showStatusFilter={true}
+                showGarageFilter={true}
+                filterParams={{ page: 1, limit: 10 }}
+              />
+            </div>
+          )}
+
+          {activeTab === "settings" && (
+            <SettingsPage />
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </main>
+</div>
     </div>
   );
 }
