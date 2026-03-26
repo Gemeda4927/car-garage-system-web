@@ -1,44 +1,55 @@
+// lib/hooks/useAuth.ts
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { authApi } from "../api/auth";
 import { useAuthStore } from "../store/auth.store";
-import { setTokenGetter } from "../api/api";
+import { setTokenGetter, clearTokenCache, updateToken } from "../api/api";
 import type { LoginRequest, LoginApiResponse, UseAuthReturn } from "../types/auth.types";
 
 export const useAuth = (): UseAuthReturn => {
   const router = useRouter();
-  const { setUser, logout: storeLogout, user, token, isAuthenticated } = useAuthStore();
-  const [loading, setLoading] = useState(false);
+  const { setUser, logout: storeLogout, user, token, isAuthenticated, isLoading: storeLoading } = useAuthStore();
+  const [loading, setLoadingState] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Keep token getter updated whenever token changes
+  // Set token getter IMMEDIATELY when token changes
   useEffect(() => {
     if (token) {
-      console.log("Token getter updated:", token.substring(0, 10) + "…(redacted)");
+      // Set the getter to return the current token synchronously
       setTokenGetter(() => token);
+      // Also update the token cache directly
+      updateToken(token);
     } else {
       setTokenGetter(() => null);
+      clearTokenCache();
     }
   }, [token]);
 
   const login = async (data: LoginRequest) => {
-    setLoading(true);
+    setLoadingState(true);
     setError(null);
 
     try {
+      if (isDev) console.time('login-total');
+      
       const response: LoginApiResponse = await authApi.login(data);
 
       if (response.success && response.data) {
-        // Set user & token in store
+        // Update store - this will trigger token update via useEffect
         setUser(response.data.user, response.data.token);
-        console.log(
-          `Login successful for user: ${response.data.user.email} (role: ${response.data.user.role})`
-        );
+        
+        if (isDev) {
+          console.timeEnd('login-total');
+          console.log(`✅ Login successful: ${response.data.user.email} (role: ${response.data.user.role})`);
+        }
+        
+        return response.data.user;
       } else {
         setError(response.message || "Login failed");
       }
     } catch (err: unknown) {
+      if (isDev) console.error("Login error:", err);
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         setError(err.response.data.message);
       } else if (err instanceof Error) {
@@ -47,16 +58,28 @@ export const useAuth = (): UseAuthReturn => {
         setError("Login failed");
       }
     } finally {
-      setLoading(false);
+      setLoadingState(false);
     }
   };
 
   const logout = () => {
     storeLogout();
+    clearTokenCache(); // Clear the token cache
     setTokenGetter(() => null);
-    console.log("User logged out, token cleared");
+    if (isDev) console.log("🔐 User logged out, all tokens cleared");
     router.push("/login");
   };
 
-  return { login, logout, user, token, isAuthenticated, loading, error };
+  return { 
+    login, 
+    logout, 
+    user, 
+    token, 
+    isAuthenticated, 
+    loading: loading || storeLoading,
+    error 
+  };
 };
+
+// Add this for TypeScript
+const isDev = process.env.NODE_ENV === 'development';
