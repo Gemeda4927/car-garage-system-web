@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -18,34 +18,56 @@ import { motion } from "framer-motion";
 export default function LoginPage() {
   const router = useRouter();
   const { login, user, loading, error } = useAuth();
-
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // Redirect after successful login
+  // Prefetch all dashboard routes on mount for faster navigation
   useEffect(() => {
-    if (user) {
-      console.log(`Redirecting user ${user.email} (role: ${user.role})`);
+    router.prefetch("/dashboard");
+    router.prefetch("/admin/dashboard");
+    router.prefetch("/owner/dashboard");
+  }, [router]);
+
+  // Optimized redirect after successful login
+  useEffect(() => {
+    if (user && !loading && !isRedirecting) {
+      console.log(`✅ User authenticated: ${user.email} (role: ${user.role})`);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsRedirecting(true);
+      
+      // Determine redirect path based on user role
+      let redirectPath = "/dashboard";
       switch (user.role) {
         case "admin":
-          router.push("/admin/dashboard");
+          redirectPath = "/admin/dashboard";
           break;
         case "garage_owner":
-          router.push("/owner/dashboard");
+          redirectPath = "/owner/dashboard";
           break;
         default:
-          router.push("/dashboard");
+          redirectPath = "/dashboard";
       }
+      
+      console.log(`🔄 Redirecting to: ${redirectPath}`);
+      
+      // Use setTimeout to ensure state updates are complete
+      // Use replace instead of push to avoid adding to history stack
+      setTimeout(() => {
+        router.replace(redirectPath);
+      }, 100);
     }
-  }, [user, router]);
+  }, [user, loading, router, isRedirecting]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
+    // Validation
     if (!email || !password) {
       setFormError("Email and password are required");
       return;
@@ -56,13 +78,35 @@ export default function LoginPage() {
       return;
     }
 
+    // Email format validation
+    const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setFormError("Please enter a valid email address");
+      return;
+    }
+
     try {
+      console.log(`🔐 Attempting login for: ${email}`);
       await login({ email, password });
+      // Don't redirect here - the useEffect will handle it
     } catch (err) {
       console.error("Login error:", err);
       setFormError("Invalid email or password. Please try again.");
+      setIsRedirecting(false); // Reset redirecting state on error
     }
   };
+
+  // Show loading spinner while checking authentication
+  if (loading && !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Signing you in...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4 relative overflow-hidden">
@@ -142,8 +186,10 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={loading || isRedirecting}
                   placeholder="you@example.com"
-                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all duration-200 bg-gray-50/50 hover:bg-white"
+                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all duration-200 bg-gray-50/50 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -162,12 +208,15 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={loading || isRedirecting}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all duration-200 bg-gray-50/50 hover:bg-white"
+                  className="w-full pl-10 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all duration-200 bg-gray-50/50 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={loading || isRedirecting}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   {showPassword ? (
@@ -186,7 +235,8 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                  disabled={loading || isRedirecting}
+                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <span className="text-sm text-gray-600 group-hover:text-indigo-600 transition-colors">
                   Remember me
@@ -218,16 +268,16 @@ export default function LoginPage() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              disabled={loading}
+              disabled={loading || isRedirecting}
               className="w-full py-4 px-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-semibold rounded-xl shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2 group"
             >
-              {loading ? (
+              {loading || isRedirecting ? (
                 <>
                   <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <span>Signing in...</span>
+                  <span>{isRedirecting ? "Redirecting..." : "Signing in..."}</span>
                 </>
               ) : (
                 <>
@@ -246,7 +296,7 @@ export default function LoginPage() {
             className="mt-6 text-center"
           >
             <p className="text-sm text-gray-500">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Link 
                 href="/register" 
                 className="text-indigo-600 hover:text-indigo-700 font-medium hover:underline transition-all"

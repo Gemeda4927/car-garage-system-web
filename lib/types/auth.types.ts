@@ -1,5 +1,5 @@
 export interface User {
-  profileImage: any;
+  profileImage: unknown;
   garageName: boolean;
   id: string;
   name: string;
@@ -26,8 +26,11 @@ export interface LoginApiResponse {
   data: LoginResponse;
 }
 
+// lib/types/auth.types.ts
 export interface UseAuthReturn {
-  login: (data: LoginRequest) => Promise<void>;
+  login: (
+    data: LoginRequest
+  ) => Promise<User | void>;
   logout: () => void;
   user: User | null;
   token: string | null;
